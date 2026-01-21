@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CrispTracker - Трекинг чипсов</title>
+    <title>CrispTracker - Трекинг снеков</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -18,7 +18,9 @@
                             yellow: '#FFD93D',
                             orange: '#FF9A3D',
                             dark: '#C65D21',
-                            accent: '#E63946'
+                            accent: '#E63946',
+                            sasha: '#4F46E5',
+                            nikita: '#10B981'
                         }
                     }
                 }
@@ -27,20 +29,58 @@
     </script>
 </head>
 <body class="bg-gradient-to-br from-crisp-light to-crisp-yellow min-h-screen">
+    
+    <!-- Login Screen -->
+    <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-crisp-orange to-crisp-dark z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+            <div class="text-center mb-8">
+                <div class="inline-block p-4 bg-crisp-yellow rounded-full mb-4">
+                    <i data-lucide="cookie" class="w-16 h-16 text-crisp-dark"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">CrispTracker</h1>
+                <p class="text-gray-600">Выберите пользователя</p>
+            </div>
+            
+            <div class="space-y-3">
+                <button onclick="login('sasha')" class="w-full bg-crisp-sasha hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-105 transition flex items-center justify-center gap-3">
+                    <i data-lucide="user" class="w-6 h-6"></i>
+                    Саша
+                </button>
+                <button onclick="login('nikita')" class="w-full bg-crisp-nikita hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-105 transition flex items-center justify-center gap-3">
+                    <i data-lucide="user" class="w-6 h-6"></i>
+                    Никита
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
     <header class="bg-crisp-orange shadow-lg">
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i data-lucide="cookie" class="w-8 h-8 text-white"></i>
-                    <h1 class="text-2xl font-bold text-white">CrispTracker</h1>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">CrispTracker</h1>
+                        <p class="text-white/80 text-sm" id="currentUser"></p>
+                    </div>
                 </div>
-                <button id="resetBtn" class="text-white hover:text-crisp-light transition">
-                    <i data-lucide="trash-2" class="w-6 h-6"></i>
-                </button>
+                <div class="flex gap-2">
+                    <button id="switchUserBtn" class="text-white hover:text-crisp-light transition">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </button>
+                    <button id="resetBtn" class="text-white hover:text-crisp-light transition">
+                        <i data-lucide="trash-2" class="w-6 h-6"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
+
+    <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 pb-24">
+        
+        <!-- Dashboard Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white rounded-2xl shadow-xl p-6 transform hover:scale-105 transition">
                 <div class="flex items-center justify-between mb-2">
@@ -67,6 +107,8 @@
                 <p class="text-gray-500 text-sm mt-1">грамм</p>
             </div>
         </div>
+
+        <!-- Insight Card -->
         <div id="insightCard" class="bg-gradient-to-r from-crisp-orange to-crisp-dark rounded-2xl shadow-xl p-6 mb-6 hidden">
             <div class="flex items-start gap-3">
                 <i data-lucide="lightbulb" class="w-6 h-6 text-white flex-shrink-0 mt-1"></i>
@@ -76,6 +118,8 @@
                 </div>
             </div>
         </div>
+
+        <!-- Charts Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div class="bg-white rounded-2xl shadow-xl p-6">
                 <h3 class="text-gray-700 font-bold mb-4 flex items-center gap-2">
@@ -92,6 +136,8 @@
                 <canvas id="lineChart"></canvas>
             </div>
         </div>
+
+        <!-- History -->
         <div class="bg-white rounded-2xl shadow-xl p-6">
             <h3 class="text-gray-700 font-bold mb-4 flex items-center gap-2">
                 <i data-lucide="history" class="w-5 h-5 text-crisp-orange"></i>
@@ -102,22 +148,37 @@
             </div>
         </div>
     </main>
+
+    <!-- Floating Action Button -->
     <button id="addBtn" class="fixed bottom-6 right-6 w-16 h-16 bg-crisp-accent hover:bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center transform hover:scale-110 transition z-50">
         <i data-lucide="plus" class="w-8 h-8"></i>
     </button>
+
+    <!-- Modal -->
     <div id="modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 transform scale-95 opacity-0 transition-all duration-300" id="modalContent">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto transform scale-95 opacity-0 transition-all duration-300" id="modalContent">
+            
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <i data-lucide="cookie" class="w-7 h-7 text-crisp-orange"></i>
-                    Я поел чипсы!
+                    Я поел снеки!
                 </h2>
                 <button id="closeModal" class="text-gray-400 hover:text-gray-600 transition">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
+
+            <!-- Snack Type Selection -->
             <div class="mb-6">
-                <label class="block text-gray-700 font-semibold mb-3">Быстрый выбор:</label>
+                <label class="block text-gray-700 font-semibold mb-3">Что ел?</label>
+                <div class="grid grid-cols-2 gap-3" id="snackTypes">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Quick Select -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-semibold mb-3">Размер пачки:</label>
                 <div class="grid grid-cols-3 gap-3">
                     <button class="quick-select bg-crisp-light hover:bg-crisp-yellow border-2 border-crisp-orange rounded-xl p-4 transition" data-grams="40">
                         <p class="font-bold text-crisp-dark">40г</p>
@@ -133,19 +194,26 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Custom Input -->
             <div class="mb-4">
                 <label class="block text-gray-700 font-semibold mb-2">Или введите свое значение:</label>
                 <input type="number" id="gramsInput" placeholder="Количество грамм" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-crisp-orange focus:outline-none text-lg">
             </div>
+
+            <!-- Date/Time -->
             <div class="mb-6">
                 <label class="block text-gray-700 font-semibold mb-2">Дата и время:</label>
                 <input type="datetime-local" id="dateTimeInput" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-crisp-orange focus:outline-none">
             </div>
+
+            <!-- Save Button -->
             <button id="saveBtn" class="w-full bg-crisp-accent hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-lg transform hover:scale-105 transition">
                 Сохранить
             </button>
         </div>
     </div>
+
     <script src="app.js"></script>
     <script>
         lucide.createIcons();
