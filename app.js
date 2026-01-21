@@ -1,24 +1,59 @@
+// Snack Types Database
+const SNACK_TYPES = {
+    'lays-classic': { name: 'Lay\'s Классические', emoji: '🥔', category: 'chips' },
+    'lays-paprika': { name: 'Lay\'s Паприка', emoji: '🌶️', category: 'chips' },
+    'lays-cheese': { name: 'Lay\'s Сыр', emoji: '🧀', category: 'chips' },
+    'pringles': { name: 'Pringles', emoji: '🎯', category: 'chips' },
+    'cheetos': { name: 'Cheetos', emoji: '🧡', category: 'chips' },
+    'doritos': { name: 'Doritos', emoji: '🔺', category: 'chips' },
+    'rustlers': { name: 'Русские картофельные', emoji: '🇷🇺', category: 'chips' },
+    'croutons-garlic': { name: 'Сухарики чесночные', emoji: '🧄', category: 'croutons' },
+    'croutons-bacon': { name: 'Сухарики бекон', emoji: '🥓', category: 'croutons' },
+    'croutons-cheese': { name: 'Сухарики сыр', emoji: '🧀', category: 'croutons' },
+    'three-crusts': { name: 'Три корочки', emoji: '🍞', category: 'croutons' },
+    'kirieshki': { name: 'Кириешки', emoji: '🌾', category: 'croutons' },
+    'other': { name: 'Другое', emoji: '❓', category: 'other' }
+};
+
 class CrispStorage {
     constructor() {
-        this.storageKey = 'crispTrackerData';
+        this.currentUser = null;
+    }
+
+    setCurrentUser(user) {
+        this.currentUser = user;
+        localStorage.setItem('crispCurrentUser', user);
+    }
+
+    getCurrentUser() {
+        if (!this.currentUser) {
+            this.currentUser = localStorage.getItem('crispCurrentUser');
+        }
+        return this.currentUser;
+    }
+
+    getStorageKey() {
+        return `crispTrackerData_${this.currentUser}`;
     }
 
     getData() {
-        const data = localStorage.getItem(this.storageKey);
+        const data = localStorage.getItem(this.getStorageKey());
         return data ? JSON.parse(data) : [];
     }
 
     saveData(data) {
-        localStorage.setItem(this.storageKey, JSON.stringify(data));
+        localStorage.setItem(this.getStorageKey(), JSON.stringify(data));
     }
 
-    addEntry(grams, dateTime) {
+    addEntry(grams, dateTime, snackType) {
         const data = this.getData();
         const entry = {
             id: Date.now(),
             grams: parseInt(grams),
             dateTime: dateTime,
-            date: dateTime.split('T')[0]
+            date: dateTime.split('T')[0],
+            snackType: snackType,
+            user: this.currentUser
         };
         data.push(entry);
         this.saveData(data);
@@ -146,6 +181,23 @@ class CrispAnalytics {
         return dayNames[maxDay];
     }
 
+    getFavoriteSnack() {
+        const data = this.storage.getData();
+        if (data.length === 0) return null;
+
+        const snackCount = {};
+        data.forEach(entry => {
+            const type = entry.snackType || 'other';
+            snackCount[type] = (snackCount[type] || 0) + 1;
+        });
+
+        const favorite = Object.keys(snackCount).reduce((a, b) => 
+            snackCount[a] > snackCount[b] ? a : b
+        );
+
+        return SNACK_TYPES[favorite]?.name || 'неизвестные снеки';
+    }
+
     getInsight() {
         const data = this.storage.getData();
         if (data.length === 0) return null;
@@ -153,17 +205,22 @@ class CrispAnalytics {
         const avgPerDay = this.getMonthTotal() / 30;
         const mostFrequentDay = this.getMostFrequentDay();
         const todayTotal = this.getTodayTotal();
+        const favoriteSnack = this.getFavoriteSnack();
 
         if (todayTotal > 200) {
             return '🚨 Сегодня вы уже съели больше 200г! Может, пора остановиться?';
         }
 
+        if (favoriteSnack) {
+            return `🏆 Ваш любимый снек: ${favoriteSnack}`;
+        }
+
         if (avgPerDay > 100) {
-            return `📊 В среднем вы едите ${Math.round(avgPerDay)}г чипсов в день. Попробуйте сократить!`;
+            return `📊 В среднем вы едите ${Math.round(avgPerDay)}г снеков в день. Попробуйте сократить!`;
         }
 
         if (mostFrequentDay) {
-            return `📅 Вы едите чипсы чаще всего по ${mostFrequentDay}`;
+            return `📅 Вы едите снеки чаще всего по ${mostFrequentDay}`;
         }
 
         return '✨ Отличная работа! Продолжайте отслеживать свои привычки.';
@@ -175,9 +232,28 @@ class CrispUI {
         this.storage = storage;
         this.analytics = analytics;
         this.charts = {};
+        this.selectedSnackType = null;
         this.initElements();
         this.initEventListeners();
-        this.render();
+        this.checkLogin();
+    }
+
+    checkLogin() {
+        const currentUser = this.storage.getCurrentUser();
+        if (!currentUser) {
+            document.getElementById('loginScreen').style.display = 'flex';
+        } else {
+            document.getElementById('loginScreen').style.display = 'none';
+            this.updateUserDisplay();
+            this.render();
+        }
+    }
+
+    updateUserDisplay() {
+        const user = this.storage.getCurrentUser();
+        const userName = user === 'sasha' ? 'Саша' : 'Никита';
+        const color = user === 'sasha' ? 'text-indigo-600' : 'text-green-600';
+        document.getElementById('currentUser').innerHTML = `<span class="${color}">👤 ${userName}</span>`;
     }
 
     initElements() {
@@ -197,8 +273,10 @@ class CrispUI {
             dateTimeInput: document.getElementById('dateTimeInput'),
             quickSelectBtns: document.querySelectorAll('.quick-select'),
             resetBtn: document.getElementById('resetBtn'),
+            switchUserBtn: document.getElementById('switchUserBtn'),
             barChart: document.getElementById('barChart'),
-            lineChart: document.getElementById('lineChart')
+            lineChart: document.getElementById('lineChart'),
+            snackTypes: document.getElementById('snackTypes')
         };
     }
 
@@ -219,9 +297,38 @@ class CrispUI {
 
         this.elements.saveBtn.addEventListener('click', () => this.saveEntry());
         this.elements.resetBtn.addEventListener('click', () => this.resetData());
+        this.elements.switchUserBtn.addEventListener('click', () => this.switchUser());
 
         this.elements.gramsInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.saveEntry();
+        });
+    }
+
+    switchUser() {
+        if (confirm('Переключиться на другого пользователя?')) {
+            localStorage.removeItem('crispCurrentUser');
+            location.reload();
+        }
+    }
+
+    renderSnackTypes() {
+        this.elements.snackTypes.innerHTML = Object.entries(SNACK_TYPES).map(([key, snack]) => `
+            <button class="snack-type-btn p-3 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-left" data-type="${key}">
+                <div class="text-2xl mb-1">${snack.emoji}</div>
+                <div class="text-xs font-semibold text-gray-700">${snack.name}</div>
+            </button>
+        `).join('');
+
+        document.querySelectorAll('.snack-type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.snack-type-btn').forEach(b => {
+                    b.classList.remove('border-crisp-orange', 'bg-crisp-light');
+                    b.classList.add('border-gray-300');
+                });
+                btn.classList.remove('border-gray-300');
+                btn.classList.add('border-crisp-orange', 'bg-crisp-light');
+                this.selectedSnackType = btn.dataset.type;
+            });
         });
     }
 
@@ -234,6 +341,9 @@ class CrispUI {
         
         this.elements.gramsInput.value = '';
         this.elements.quickSelectBtns.forEach(b => b.classList.remove('active'));
+        this.selectedSnackType = null;
+
+        this.renderSnackTypes();
 
         this.elements.modal.classList.remove('hidden');
         setTimeout(() => {
@@ -264,11 +374,17 @@ class CrispUI {
             return;
         }
 
-        this.storage.addEntry(grams, dateTime);
+        if (!this.selectedSnackType) {
+            alert('Пожалуйста, выберите тип снека');
+            return;
+        }
+
+        this.storage.addEntry(grams, dateTime, this.selectedSnackType);
         this.closeModal();
         this.render();
 
-        this.showToast(`✅ Добавлено ${grams}г`);
+        const snackName = SNACK_TYPES[this.selectedSnackType].name;
+        this.showToast(`✅ ${snackName} ${grams}г добавлено`);
     }
 
     showToast(message) {
@@ -283,7 +399,7 @@ class CrispUI {
     }
 
     resetData() {
-        if (confirm('Вы уверены, что хотите удалить все данные?')) {
+        if (confirm('Вы уверены, что хотите удалить все свои данные?')) {
             this.storage.clearAll();
             this.render();
             this.showToast('🗑️ Данные очищены');
@@ -332,14 +448,16 @@ class CrispUI {
                 minute: '2-digit'
             });
 
+            const snack = SNACK_TYPES[entry.snackType] || SNACK_TYPES['other'];
+
             return `
                 <div class="history-item flex items-center justify-between p-3 rounded-lg border border-gray-200">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-crisp-yellow rounded-full flex items-center justify-center">
-                            <i data-lucide="cookie" class="w-5 h-5 text-crisp-dark"></i>
+                        <div class="w-10 h-10 bg-crisp-yellow rounded-full flex items-center justify-center text-2xl">
+                            ${snack.emoji}
                         </div>
                         <div>
-                            <p class="font-semibold text-gray-800">${entry.grams}г</p>
+                            <p class="font-semibold text-gray-800">${entry.grams}г • ${snack.name}</p>
                             <p class="text-sm text-gray-500">${formattedDate}</p>
                         </div>
                     </div>
@@ -375,6 +493,9 @@ class CrispUI {
         }
 
         const ctx = this.elements.barChart.getContext('2d');
+        const user = this.storage.getCurrentUser();
+        const color = user === 'sasha' ? '#4F46E5' : '#10B981';
+
         this.charts.bar = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -382,8 +503,8 @@ class CrispUI {
                 datasets: [{
                     label: 'Грамм',
                     data: data.map(d => d.total),
-                    backgroundColor: '#FF9A3D',
-                    borderColor: '#C65D21',
+                    backgroundColor: color,
+                    borderColor: color,
                     borderWidth: 2,
                     borderRadius: 8
                 }]
@@ -418,6 +539,9 @@ class CrispUI {
         }
 
         const ctx = this.elements.lineChart.getContext('2d');
+        const user = this.storage.getCurrentUser();
+        const color = user === 'sasha' ? '#4F46E5' : '#10B981';
+
         this.charts.line = new Chart(ctx, {
             type: 'line',
             data: {
@@ -425,8 +549,8 @@ class CrispUI {
                 datasets: [{
                     label: 'Накопленный итог',
                     data: data.map(d => d.cumulative),
-                    borderColor: '#E63946',
-                    backgroundColor: 'rgba(230, 57, 70, 0.1)',
+                    borderColor: color,
+                    backgroundColor: color + '20',
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4
@@ -460,10 +584,25 @@ class CrispUI {
     }
 }
 
+function login(user) {
+    const storage = new CrispStorage();
+    storage.setCurrentUser(user);
+    document.getElementById('loginScreen').style.display = 'none';
+    
+    const analytics = new CrispAnalytics(storage);
+    window.crispApp = new CrispUI(storage, analytics);
+    
+    lucide.createIcons();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const storage = new CrispStorage();
-    const analytics = new CrispAnalytics(storage);
-    const ui = new CrispUI(storage, analytics);
+    
+    if (storage.getCurrentUser()) {
+        const analytics = new CrispAnalytics(storage);
+        window.crispApp = new CrispUI(storage, analytics);
+    }
 
-    console.log('🍟 CrispTracker initialized!');
+    lucide.createIcons();
+    console.log('🍟 CrispTracker Pro initialized!');
 });
