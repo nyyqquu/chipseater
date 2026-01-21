@@ -15,6 +15,18 @@ const SNACK_TYPES = {
     'other': { name: 'Другое', emoji: '❓', category: 'other' }
 };
 
+// Global login function
+window.login = function(user) {
+    const storage = new CrispStorage();
+    storage.setCurrentUser(user);
+    document.getElementById('loginScreen').style.display = 'none';
+    
+    const analytics = new CrispAnalytics(storage);
+    window.crispApp = new CrispUI(storage, analytics);
+    
+    lucide.createIcons();
+};
+
 class CrispStorage {
     constructor() {
         this.currentUser = null;
@@ -39,6 +51,15 @@ class CrispStorage {
     getData() {
         const data = localStorage.getItem(this.getStorageKey());
         return data ? JSON.parse(data) : [];
+    }
+
+    getAllUsersData() {
+        const sashaData = JSON.parse(localStorage.getItem('crispTrackerData_sasha') || '[]');
+        const nikitaData = JSON.parse(localStorage.getItem('crispTrackerData_nikita') || '[]');
+        return {
+            sasha: sashaData,
+            nikita: nikitaData
+        };
     }
 
     saveData(data) {
@@ -126,6 +147,39 @@ class CrispAnalytics {
         return days;
     }
 
+    getLast7DaysComparison() {
+        const days = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            days.push({
+                date: dateStr,
+                label: this.formatDateLabel(date),
+                sasha: 0,
+                nikita: 0
+            });
+        }
+
+        const allData = this.storage.getAllUsersData();
+        
+        allData.sasha.forEach(entry => {
+            const day = days.find(d => d.date === entry.date);
+            if (day) {
+                day.sasha += entry.grams;
+            }
+        });
+
+        allData.nikita.forEach(entry => {
+            const day = days.find(d => d.date === entry.date);
+            if (day) {
+                day.nikita += entry.grams;
+            }
+        });
+
+        return days;
+    }
+
     getMonthCumulative() {
         const days = [];
         for (let i = 29; i >= 0; i--) {
@@ -198,6 +252,20 @@ class CrispAnalytics {
         return SNACK_TYPES[favorite]?.name || 'неизвестные снеки';
     }
 
+    getComparisonStats() {
+        const allData = this.storage.getAllUsersData();
+        
+        const sashaTotal = allData.sasha.reduce((sum, entry) => sum + entry.grams, 0);
+        const nikitaTotal = allData.nikita.reduce((sum, entry) => sum + entry.grams, 0);
+
+        return {
+            sasha: sashaTotal,
+            nikita: nikitaTotal,
+            leader: sashaTotal > nikitaTotal ? 'Саша' : (nikitaTotal > sashaTotal ? 'Никита' : 'Ничья'),
+            difference: Math.abs(sashaTotal - nikitaTotal)
+        };
+    }
+
     getInsight() {
         const data = this.storage.getData();
         if (data.length === 0) return null;
@@ -206,17 +274,22 @@ class CrispAnalytics {
         const mostFrequentDay = this.getMostFrequentDay();
         const todayTotal = this.getTodayTotal();
         const favoriteSnack = this.getFavoriteSnack();
+        const comparison = this.getComparisonStats();
 
         if (todayTotal > 200) {
             return '🚨 Сегодня вы уже съели больше 200г! Может, пора остановиться?';
         }
 
+        if (comparison.leader && comparison.leader !== 'Ничья') {
+            return `🏆 Лидер по снекам за всё время: ${comparison.leader} (разница ${comparison.difference}г)`;
+        }
+
         if (favoriteSnack) {
-            return `🏆 Ваш любимый снек: ${favoriteSnack}`;
+            return `🍟 Ваш любимый снек: ${favoriteSnack}`;
         }
 
         if (avgPerDay > 100) {
-            return `📊 В среднем вы едите ${Math.round(avgPerDay)}г снеков в день. Попробуйте сократить!`;
+            return `📊 В среднем вы едите ${Math.round(avgPerDay)}г снеков в день`;
         }
 
         if (mostFrequentDay) {
@@ -486,35 +559,44 @@ class CrispUI {
     }
 
     renderBarChart() {
-        const data = this.analytics.getLast7Days();
+        const data = this.analytics.getLast7DaysComparison();
         
         if (this.charts.bar) {
             this.charts.bar.destroy();
         }
 
         const ctx = this.elements.barChart.getContext('2d');
-        const user = this.storage.getCurrentUser();
-        const color = user === 'sasha' ? '#4F46E5' : '#10B981';
 
         this.charts.bar = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: data.map(d => d.label),
-                datasets: [{
-                    label: 'Грамм',
-                    data: data.map(d => d.total),
-                    backgroundColor: color,
-                    borderColor: color,
-                    borderWidth: 2,
-                    borderRadius: 8
-                }]
+                datasets: [
+                    {
+                        label: 'Саша',
+                        data: data.map(d => d.sasha),
+                        backgroundColor: '#4F46E5',
+                        borderColor: '#4F46E5',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Никита',
+                        data: data.map(d => d.nikita),
+                        backgroundColor: '#10B981',
+                        borderColor: '#10B981',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
                     legend: {
-                        display: false
+                        display: true,
+                        position: 'top'
                     }
                 },
                 scales: {
@@ -582,17 +664,6 @@ class CrispUI {
             }
         });
     }
-}
-
-function login(user) {
-    const storage = new CrispStorage();
-    storage.setCurrentUser(user);
-    document.getElementById('loginScreen').style.display = 'none';
-    
-    const analytics = new CrispAnalytics(storage);
-    window.crispApp = new CrispUI(storage, analytics);
-    
-    lucide.createIcons();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
