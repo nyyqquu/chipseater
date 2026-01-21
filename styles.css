@@ -1,0 +1,65 @@
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+#modal.show #modalContent {
+    transform: scale(1);
+    opacity: 1;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #FFF4E6;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #FFD93D;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #FF9A3D;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.quick-select.active {
+    background: #FF9A3D;
+    border-color: #C65D21;
+    transform: scale(1.05);
+}
+
+.history-item {
+    transition: all 0.2s;
+}
+
+.history-item:hover {
+    background: #FFF4E6;
+    transform: translateX(4px);
+}
