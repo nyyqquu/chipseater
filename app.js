@@ -892,52 +892,86 @@ class CrispTrackerApp {
         document.getElementById('selectionSummary').classList.remove('hidden');
     }
 
-    async saveSnack() {
-        const grams = parseInt(document.getElementById('customGrams').value);
-        const dateTime = document.getElementById('dateTimeInput').value;
+   async saveSnack() {
+    console.log('=== SAVING SNACK ===');
+    console.log('Current selection:', currentSelection);
+    
+    const grams = parseInt(document.getElementById('customGrams').value);
+    const dateTime = document.getElementById('dateTimeInput').value;
 
-        if (!grams || grams <= 0) {
-            alert('Введите количество грамм');
-            return;
-        }
+    console.log('Grams:', grams);
+    console.log('DateTime:', dateTime);
 
-        if (!currentSelection.brand || !currentSelection.flavor) {
-            alert('Выберите снек');
-            return;
-        }
+    if (!grams || grams <= 0) {
+        alert('Введите количество грамм');
+        return;
+    }
 
-        const brands = this.getAllBrands(currentSelection.category);
-        const brandData = brands[currentSelection.brand];
-        const flavorData = brandData.flavors[currentSelection.flavor];
+    if (!dateTime) {
+        alert('Выберите дату');
+        return;
+    }
 
-        const entry = {
-            userId: this.user.uid,
-            username: this.profile.username,
-            userPhotoURL: this.profile.photoURL,
-            category: currentSelection.category,
-            brand: currentSelection.brand,
-            flavor: currentSelection.flavor,
-            grams: grams,
-            name: `${brandData.name} ${flavorData.name}`,
-            emoji: brandData.emoji,
-            date: dateTime.split('T')[0],
-            timestamp: firebase.firestore.Timestamp.fromDate(new Date(dateTime))
-        };
+    if (!currentSelection.category) {
+        alert('Выберите категорию (чипсы/сухарики)');
+        return;
+    }
 
-        await db.collection('entries').add(entry);
+    if (!currentSelection.brand || !currentSelection.flavor) {
+        alert('Выберите снек полностью');
+        console.log('Missing brand or flavor');
+        return;
+    }
+
+    const brands = this.getAllBrands(currentSelection.category);
+    console.log('Available brands:', Object.keys(brands));
+    
+    const brandData = brands[currentSelection.brand];
+    console.log('Selected brand data:', brandData);
+    
+    if (!brandData) {
+        alert('Ошибка: бренд не найден');
+        console.error('Brand not found:', currentSelection.brand);
+        return;
+    }
+
+    const flavorData = brandData.flavors[currentSelection.flavor];
+    console.log('Selected flavor data:', flavorData);
+
+    if (!flavorData) {
+        alert('Ошибка: вкус не найден');
+        console.error('Flavor not found:', currentSelection.flavor);
+        return;
+    }
+
+    const entry = {
+        userId: this.user.uid,
+        username: this.profile.username,
+        userPhotoURL: this.profile.photoURL,
+        category: currentSelection.category,
+        brand: currentSelection.brand,
+        flavor: currentSelection.flavor,
+        grams: grams,
+        name: `${brandData.name} ${flavorData.name}`,
+        emoji: brandData.emoji,
+        date: dateTime.split('T')[0],
+        timestamp: firebase.firestore.Timestamp.fromDate(new Date(dateTime))
+    };
+
+    console.log('Entry to save:', entry);
+
+    try {
+        const docRef = await db.collection('entries').add(entry);
+        console.log('✅ Saved with ID:', docRef.id);
 
         this.closeAddModal();
-        this.loadData();
-        this.showToast(`✅ ${entry.name} ${grams}г`);
+        await this.loadData();
+        this.showToast(`✅ ${entry.name} ${grams}г добавлено!`);
+    } catch (error) {
+        console.error('❌ Error saving:', error);
+        alert('Ошибка сохранения: ' + error.message);
     }
-
-    async deleteEntry(id) {
-        if (confirm('Удалить?')) {
-            await db.collection('entries').doc(id).delete();
-            this.loadData();
-            this.showToast('🗑️ Удалено');
-        }
-    }
+}
 
     // ==========================================
     // CUSTOM BRANDS
