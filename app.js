@@ -1,540 +1,412 @@
-// Snack Types Database
-const SNACK_TYPES = {
-    'lays-classic': { name: 'Lay\'s Классические', emoji: '🥔', category: 'chips' },
-    'lays-paprika': { name: 'Lay\'s Паприка', emoji: '🌶️', category: 'chips' },
-    'lays-cheese': { name: 'Lay\'s Сыр', emoji: '🧀', category: 'chips' },
-    'pringles': { name: 'Pringles', emoji: '🎯', category: 'chips' },
-    'cheetos': { name: 'Cheetos', emoji: '🧡', category: 'chips' },
-    'doritos': { name: 'Doritos', emoji: '🔺', category: 'chips' },
-    'rustlers': { name: 'Русские картофельные', emoji: '🇷🇺', category: 'chips' },
-    'croutons-garlic': { name: 'Сухарики чесночные', emoji: '🧄', category: 'croutons' },
-    'croutons-bacon': { name: 'Сухарики бекон', emoji: '🥓', category: 'croutons' },
-    'croutons-cheese': { name: 'Сухарики сыр', emoji: '🧀', category: 'croutons' },
-    'three-crusts': { name: 'Три корочки', emoji: '🍞', category: 'croutons' },
-    'kirieshki': { name: 'Кириешки', emoji: '🌾', category: 'croutons' },
-    'other': { name: 'Другое', emoji: '❓', category: 'other' }
+// ==========================================
+// SNACK DATABASE
+// ==========================================
+
+const SNACKS_DATABASE = {
+    chips: {
+        brands: {
+            lays: {
+                name: "Lay's",
+                emoji: "🥔",
+                flavors: {
+                    classic: { name: "Классические", emoji: "🥔" },
+                    paprika: { name: "Паприка", emoji: "🌶️" },
+                    cheese: { name: "Сыр", emoji: "🧀" },
+                    sour_cream: { name: "Сметана и зелень", emoji: "🌿" },
+                    bacon: { name: "Бекон", emoji: "🥓" },
+                    crab: { name: "Краб", emoji: "🦀" }
+                }
+            },
+            pringles: {
+                name: "Pringles",
+                emoji: "🎯",
+                flavors: {
+                    original: { name: "Original", emoji: "🥔" },
+                    sour_cream: { name: "Sour Cream & Onion", emoji: "🧅" },
+                    paprika: { name: "Paprika", emoji: "🌶️" },
+                    cheese: { name: "Cheese", emoji: "🧀" },
+                    pizza: { name: "Pizza", emoji: "🍕" }
+                }
+            },
+            cheetos: {
+                name: "Cheetos",
+                emoji: "🧡",
+                flavors: {
+                    cheese: { name: "Сыр", emoji: "🧀" },
+                    flamin_hot: { name: "Flamin' Hot", emoji: "🔥" },
+                    ketchup: { name: "Кетчуп", emoji: "🍅" }
+                }
+            },
+            doritos: {
+                name: "Doritos",
+                emoji: "🔺",
+                flavors: {
+                    nacho: { name: "Nacho Cheese", emoji: "🧀" },
+                    cool_ranch: { name: "Cool Ranch", emoji: "🌿" },
+                    chilli: { name: "Chilli", emoji: "🌶️" }
+                }
+            }
+        },
+        sizes: [
+            { grams: 40, label: "Маленькая", emoji: "📦" },
+            { grams: 90, label: "Средняя", emoji: "📦📦" },
+            { grams: 150, label: "Большая", emoji: "📦📦📦" },
+            { grams: 250, label: "XL", emoji: "📦📦📦📦" }
+        ]
+    },
+    croutons: {
+        brands: {
+            three_crusts: {
+                name: "Три корочки",
+                emoji: "🍞",
+                flavors: {
+                    garlic: { name: "Чеснок", emoji: "🧄" },
+                    bacon: { name: "Бекон", emoji: "🥓" },
+                    cheese: { name: "Сыр", emoji: "🧀" },
+                    salami: { name: "Салями", emoji: "🍕" },
+                    chicken: { name: "Курица", emoji: "🍗" }
+                }
+            },
+            kirieshki: {
+                name: "Кириешки",
+                emoji: "🌾",
+                flavors: {
+                    rye_salt: { name: "Ржаные с солью", emoji: "🧂" },
+                    bacon: { name: "Бекон", emoji: "🥓" },
+                    salami: { name: "Салями", emoji: "🍕" },
+                    chicken: { name: "Курица", emoji: "🍗" }
+                }
+            },
+            flint: {
+                name: "Flint",
+                emoji: "💎",
+                flavors: {
+                    garlic: { name: "Чеснок", emoji: "🧄" },
+                    cheese: { name: "Сыр", emoji: "🧀" },
+                    bacon: { name: "Бекон", emoji: "🥓" },
+                    crab: { name: "Краб", emoji: "🦀" }
+                }
+            }
+        },
+        sizes: [
+            { grams: 60, label: "Маленькая", emoji: "📦" },
+            { grams: 100, label: "Средняя", emoji: "📦📦" },
+            { grams: 150, label: "Большая", emoji: "📦📦📦" }
+        ]
+    }
 };
 
-// Global login function
-window.login = function(user) {
-    const storage = new CrispStorage();
-    storage.setCurrentUser(user);
-    document.getElementById('loginScreen').style.display = 'none';
-    
-    const analytics = new CrispAnalytics(storage);
-    window.crispApp = new CrispUI(storage, analytics);
-    
-    lucide.createIcons();
+// ==========================================
+// GLOBAL STATE
+// ==========================================
+
+let currentUser = null;
+let currentSelection = {
+    category: null,
+    brand: null,
+    flavor: null,
+    size: null
 };
 
-class CrispStorage {
+// ==========================================
+// AUTH MANAGER
+// ==========================================
+
+class AuthManager {
     constructor() {
-        this.currentUser = null;
+        this.initAuthListener();
     }
 
-    setCurrentUser(user) {
-        this.currentUser = user;
-        localStorage.setItem('crispCurrentUser', user);
-    }
-
-    getCurrentUser() {
-        if (!this.currentUser) {
-            this.currentUser = localStorage.getItem('crispCurrentUser');
-        }
-        return this.currentUser;
-    }
-
-    getStorageKey() {
-        return `crispTrackerData_${this.currentUser}`;
-    }
-
-    getData() {
-        const data = localStorage.getItem(this.getStorageKey());
-        return data ? JSON.parse(data) : [];
-    }
-
-    getAllUsersData() {
-        const sashaData = JSON.parse(localStorage.getItem('crispTrackerData_sasha') || '[]');
-        const nikitaData = JSON.parse(localStorage.getItem('crispTrackerData_nikita') || '[]');
-        return {
-            sasha: sashaData,
-            nikita: nikitaData
-        };
-    }
-
-    saveData(data) {
-        localStorage.setItem(this.getStorageKey(), JSON.stringify(data));
-    }
-
-    addEntry(grams, dateTime, snackType) {
-        const data = this.getData();
-        const entry = {
-            id: Date.now(),
-            grams: parseInt(grams),
-            dateTime: dateTime,
-            date: dateTime.split('T')[0],
-            snackType: snackType,
-            user: this.currentUser
-        };
-        data.push(entry);
-        this.saveData(data);
-        return entry;
-    }
-
-    deleteEntry(id) {
-        const data = this.getData();
-        const filtered = data.filter(entry => entry.id !== id);
-        this.saveData(filtered);
-    }
-
-    clearAll() {
-        this.saveData([]);
-    }
-}
-
-class CrispAnalytics {
-    constructor(storage) {
-        this.storage = storage;
-    }
-
-    getTodayTotal() {
-        const today = new Date().toISOString().split('T')[0];
-        const data = this.storage.getData();
-        return data
-            .filter(entry => entry.date === today)
-            .reduce((sum, entry) => sum + entry.grams, 0);
-    }
-
-    getWeekTotal() {
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const data = this.storage.getData();
-        return data
-            .filter(entry => new Date(entry.date) >= weekAgo)
-            .reduce((sum, entry) => sum + entry.grams, 0);
-    }
-
-    getMonthTotal() {
-        const monthAgo = new Date();
-        monthAgo.setDate(monthAgo.getDate() - 30);
-        const data = this.storage.getData();
-        return data
-            .filter(entry => new Date(entry.date) >= monthAgo)
-            .reduce((sum, entry) => sum + entry.grams, 0);
-    }
-
-    getLast7Days() {
-        const days = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            days.push({
-                date: dateStr,
-                label: this.formatDateLabel(date),
-                total: 0
-            });
-        }
-
-        const data = this.storage.getData();
-        data.forEach(entry => {
-            const day = days.find(d => d.date === entry.date);
-            if (day) {
-                day.total += entry.grams;
+    initAuthListener() {
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                this.handleLogin(user);
+            } else {
+                this.showLoginScreen();
             }
         });
-
-        return days;
     }
 
-    getLast7DaysComparison() {
-        const days = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            days.push({
-                date: dateStr,
-                label: this.formatDateLabel(date),
-                sasha: 0,
-                nikita: 0
-            });
-        }
+    async handleLogin(user) {
+        console.log('User logged in:', user.email);
+        currentUser = user;
 
-        const allData = this.storage.getAllUsersData();
-        
-        allData.sasha.forEach(entry => {
-            const day = days.find(d => d.date === entry.date);
-            if (day) {
-                day.sasha += entry.grams;
-            }
-        });
+        // Check if profile exists
+        const profileDoc = await db.collection('users').doc(user.uid).get();
 
-        allData.nikita.forEach(entry => {
-            const day = days.find(d => d.date === entry.date);
-            if (day) {
-                day.nikita += entry.grams;
-            }
-        });
-
-        return days;
-    }
-
-    getMonthCumulative() {
-        const days = [];
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            days.push({
-                date: dateStr,
-                label: this.formatDateLabel(date),
-                daily: 0,
-                cumulative: 0
-            });
-        }
-
-        const data = this.storage.getData();
-        data.forEach(entry => {
-            const day = days.find(d => d.date === entry.date);
-            if (day) {
-                day.daily += entry.grams;
-            }
-        });
-
-        let cumulative = 0;
-        days.forEach(day => {
-            cumulative += day.daily;
-            day.cumulative = cumulative;
-        });
-
-        return days;
-    }
-
-    formatDateLabel(date) {
-        const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-        return `${days[date.getDay()]} ${date.getDate()}`;
-    }
-
-    getMostFrequentDay() {
-        const data = this.storage.getData();
-        if (data.length === 0) return null;
-
-        const dayCount = {};
-        const dayNames = ['воскресеньям', 'понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам'];
-
-        data.forEach(entry => {
-            const dayOfWeek = new Date(entry.dateTime).getDay();
-            dayCount[dayOfWeek] = (dayCount[dayOfWeek] || 0) + 1;
-        });
-
-        const maxDay = Object.keys(dayCount).reduce((a, b) => 
-            dayCount[a] > dayCount[b] ? a : b
-        );
-
-        return dayNames[maxDay];
-    }
-
-    getFavoriteSnack() {
-        const data = this.storage.getData();
-        if (data.length === 0) return null;
-
-        const snackCount = {};
-        data.forEach(entry => {
-            const type = entry.snackType || 'other';
-            snackCount[type] = (snackCount[type] || 0) + 1;
-        });
-
-        const favorite = Object.keys(snackCount).reduce((a, b) => 
-            snackCount[a] > snackCount[b] ? a : b
-        );
-
-        return SNACK_TYPES[favorite]?.name || 'неизвестные снеки';
-    }
-
-    getComparisonStats() {
-        const allData = this.storage.getAllUsersData();
-        
-        const sashaTotal = allData.sasha.reduce((sum, entry) => sum + entry.grams, 0);
-        const nikitaTotal = allData.nikita.reduce((sum, entry) => sum + entry.grams, 0);
-
-        return {
-            sasha: sashaTotal,
-            nikita: nikitaTotal,
-            leader: sashaTotal > nikitaTotal ? 'Саша' : (nikitaTotal > sashaTotal ? 'Никита' : 'Ничья'),
-            difference: Math.abs(sashaTotal - nikitaTotal)
-        };
-    }
-
-    getInsight() {
-        const data = this.storage.getData();
-        if (data.length === 0) return null;
-
-        const avgPerDay = this.getMonthTotal() / 30;
-        const mostFrequentDay = this.getMostFrequentDay();
-        const todayTotal = this.getTodayTotal();
-        const favoriteSnack = this.getFavoriteSnack();
-        const comparison = this.getComparisonStats();
-
-        if (todayTotal > 200) {
-            return '🚨 Сегодня вы уже съели больше 200г! Может, пора остановиться?';
-        }
-
-        if (comparison.leader && comparison.leader !== 'Ничья') {
-            return `🏆 Лидер по снекам за всё время: ${comparison.leader} (разница ${comparison.difference}г)`;
-        }
-
-        if (favoriteSnack) {
-            return `🍟 Ваш любимый снек: ${favoriteSnack}`;
-        }
-
-        if (avgPerDay > 100) {
-            return `📊 В среднем вы едите ${Math.round(avgPerDay)}г снеков в день`;
-        }
-
-        if (mostFrequentDay) {
-            return `📅 Вы едите снеки чаще всего по ${mostFrequentDay}`;
-        }
-
-        return '✨ Отличная работа! Продолжайте отслеживать свои привычки.';
-    }
-}
-
-class CrispUI {
-    constructor(storage, analytics) {
-        this.storage = storage;
-        this.analytics = analytics;
-        this.charts = {};
-        this.selectedSnackType = null;
-        this.initElements();
-        this.initEventListeners();
-        this.checkLogin();
-    }
-
-    checkLogin() {
-        const currentUser = this.storage.getCurrentUser();
-        if (!currentUser) {
-            document.getElementById('loginScreen').style.display = 'flex';
+        if (!profileDoc.exists) {
+            // Show profile setup
+            this.showProfileSetup(user);
         } else {
+            // Load app
             document.getElementById('loginScreen').style.display = 'none';
-            this.updateUserDisplay();
-            this.render();
+            window.app = new CrispTrackerApp(user, profileDoc.data());
         }
     }
 
-    updateUserDisplay() {
-        const user = this.storage.getCurrentUser();
-        const userName = user === 'sasha' ? 'Саша' : 'Никита';
-        const color = user === 'sasha' ? 'text-indigo-600' : 'text-green-600';
-        document.getElementById('currentUser').innerHTML = `<span class="${color}">👤 ${userName}</span>`;
+    showLoginScreen() {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('googleLoginBtn').onclick = () => this.loginWithGoogle();
     }
 
-    initElements() {
-        this.elements = {
-            todayCount: document.getElementById('todayCount'),
-            weekCount: document.getElementById('weekCount'),
-            monthCount: document.getElementById('monthCount'),
-            insightCard: document.getElementById('insightCard'),
-            insightText: document.getElementById('insightText'),
-            historyList: document.getElementById('historyList'),
-            addBtn: document.getElementById('addBtn'),
-            modal: document.getElementById('modal'),
-            modalContent: document.getElementById('modalContent'),
-            closeModal: document.getElementById('closeModal'),
-            saveBtn: document.getElementById('saveBtn'),
-            gramsInput: document.getElementById('gramsInput'),
-            dateTimeInput: document.getElementById('dateTimeInput'),
-            quickSelectBtns: document.querySelectorAll('.quick-select'),
-            resetBtn: document.getElementById('resetBtn'),
-            switchUserBtn: document.getElementById('switchUserBtn'),
-            barChart: document.getElementById('barChart'),
-            lineChart: document.getElementById('lineChart'),
-            snackTypes: document.getElementById('snackTypes')
+    async loginWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            await auth.signInWithPopup(provider);
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Ошибка входа: ' + error.message);
+        }
+    }
+
+    showProfileSetup(user) {
+        document.getElementById('loginScreen').style.display = 'none';
+        const modal = document.getElementById('profileSetupModal');
+        modal.classList.remove('hidden');
+
+        document.getElementById('emailDisplay').value = user.email;
+        document.getElementById('profilePreview').src = user.photoURL || 'https://via.placeholder.com/150';
+
+        document.getElementById('changePhotoBtn').onclick = () => {
+            document.getElementById('photoInput').click();
         };
+
+        document.getElementById('photoInput').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('profilePreview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        document.getElementById('saveProfileBtn').onclick = () => this.saveProfile(user);
     }
 
-    initEventListeners() {
-        this.elements.addBtn.addEventListener('click', () => this.openModal());
-        this.elements.closeModal.addEventListener('click', () => this.closeModal());
-        this.elements.modal.addEventListener('click', (e) => {
-            if (e.target === this.elements.modal) this.closeModal();
+    async saveProfile(user) {
+        const username = document.getElementById('usernameInput').value.trim();
+
+        if (!username) {
+            alert('Пожалуйста, введите ник');
+            return;
+        }
+
+        // Check if username is taken
+        const usernameQuery = await db.collection('users')
+            .where('username', '==', username)
+            .get();
+
+        if (!usernameQuery.empty && usernameQuery.docs[0].id !== user.uid) {
+            alert('Этот ник уже занят');
+            return;
+        }
+
+        const photoFile = document.getElementById('photoInput').files[0];
+        let photoURL = user.photoURL;
+
+        // Upload photo if selected
+        if (photoFile) {
+            const storageRef = storage.ref(`avatars/${user.uid}`);
+            await storageRef.put(photoFile);
+            photoURL = await storageRef.getDownloadURL();
+        }
+
+        // Save profile
+        await db.collection('users').doc(user.uid).set({
+            username: username,
+            email: user.email,
+            photoURL: photoURL,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        this.elements.quickSelectBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.elements.quickSelectBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.elements.gramsInput.value = btn.dataset.grams;
-            });
-        });
-
-        this.elements.saveBtn.addEventListener('click', () => this.saveEntry());
-        this.elements.resetBtn.addEventListener('click', () => this.resetData());
-        this.elements.switchUserBtn.addEventListener('click', () => this.switchUser());
-
-        this.elements.gramsInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.saveEntry();
-        });
+        // Reload
+        location.reload();
     }
 
-    switchUser() {
-        if (confirm('Переключиться на другого пользователя?')) {
-            localStorage.removeItem('crispCurrentUser');
+    async logout() {
+        if (confirm('Выйти из аккаунта?')) {
+            await auth.signOut();
             location.reload();
         }
     }
+}
 
-    renderSnackTypes() {
-        this.elements.snackTypes.innerHTML = Object.entries(SNACK_TYPES).map(([key, snack]) => `
-            <button class="snack-type-btn p-3 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-left" data-type="${key}">
-                <div class="text-2xl mb-1">${snack.emoji}</div>
-                <div class="text-xs font-semibold text-gray-700">${snack.name}</div>
-            </button>
-        `).join('');
+// ==========================================
+// MAIN APP
+// ==========================================
 
-        document.querySelectorAll('.snack-type-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.snack-type-btn').forEach(b => {
-                    b.classList.remove('border-crisp-orange', 'bg-crisp-light');
-                    b.classList.add('border-gray-300');
-                });
-                btn.classList.remove('border-gray-300');
-                btn.classList.add('border-crisp-orange', 'bg-crisp-light');
-                this.selectedSnackType = btn.dataset.type;
-            });
+class CrispTrackerApp {
+    constructor(user, profile) {
+        this.user = user;
+        this.profile = profile;
+        this.initUI();
+        this.loadData();
+    }
+
+    initUI() {
+        // Update header
+        document.getElementById('currentUserName').textContent = `@${this.profile.username}`;
+        document.getElementById('headerAvatar').src = this.profile.photoURL || 'https://via.placeholder.com/150';
+
+        // Event listeners
+        document.getElementById('addBtn').onclick = () => this.openAddModal();
+        document.getElementById('closeModal').onclick = () => this.closeAddModal();
+        document.getElementById('logoutBtn').onclick = () => new AuthManager().logout();
+        document.getElementById('profileBtn').onclick = () => this.showProfile();
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => this.switchTab(btn.dataset.tab);
         });
+
+        // Initialize tabs
+        this.renderChipsBrands();
+        this.renderCroutonsBrands();
+
+        lucide.createIcons();
     }
 
-    openModal() {
+    async loadData() {
+        await this.loadMyStats();
+        await this.loadLeaderboard();
+        await this.loadHistory();
+        await this.renderComparisonChart();
+    }
+
+    async loadMyStats() {
         const now = new Date();
-        const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 16);
-        this.elements.dateTimeInput.value = localDateTime;
-        
-        this.elements.gramsInput.value = '';
-        this.elements.quickSelectBtns.forEach(b => b.classList.remove('active'));
-        this.selectedSnackType = null;
+        const today = now.toISOString().split('T')[0];
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        this.renderSnackTypes();
+        const snapshot = await db.collection('entries')
+            .where('userId', '==', this.user.uid)
+            .where('date', '>=', monthAgo.toISOString().split('T')[0])
+            .get();
 
-        this.elements.modal.classList.remove('hidden');
-        setTimeout(() => {
-            this.elements.modal.classList.add('show');
-        }, 10);
+        let todayTotal = 0;
+        let weekTotal = 0;
+        let monthTotal = 0;
 
-        this.elements.gramsInput.focus();
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const grams = data.grams;
+            monthTotal += grams;
+
+            if (data.date >= weekAgo.toISOString().split('T')[0]) {
+                weekTotal += grams;
+            }
+
+            if (data.date === today) {
+                todayTotal += grams;
+            }
+        });
+
+        document.getElementById('myTodayCount').textContent = todayTotal;
+        document.getElementById('myWeekCount').textContent = weekTotal;
+        document.getElementById('myMonthCount').textContent = monthTotal;
     }
 
-    closeModal() {
-        this.elements.modal.classList.remove('show');
-        setTimeout(() => {
-            this.elements.modal.classList.add('hidden');
-        }, 300);
+    async loadLeaderboard() {
+        const monthAgo = new Date();
+        monthAgo.setDate(monthAgo.getDate() - 30);
+
+        const snapshot = await db.collection('entries')
+            .where('date', '>=', monthAgo.toISOString().split('T')[0])
+            .get();
+
+        const userTotals = {};
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (!userTotals[data.userId]) {
+                userTotals[data.userId] = {
+                    userId: data.userId,
+                    username: data.username,
+                    photoURL: data.userPhotoURL,
+                    total: 0
+                };
+            }
+            userTotals[data.userId].total += data.grams;
+        });
+
+        const leaderboard = Object.values(userTotals)
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 10);
+
+        this.renderLeaderboard(leaderboard);
     }
 
-    saveEntry() {
-        const grams = parseInt(this.elements.gramsInput.value);
-        const dateTime = this.elements.dateTimeInput.value;
+    renderLeaderboard(leaderboard) {
+        const container = document.getElementById('leaderboard');
 
-        if (!grams || grams <= 0) {
-            alert('Пожалуйста, введите количество грамм');
+        if (leaderboard.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 text-center py-4">Пока нет данных</p>';
             return;
         }
 
-        if (!dateTime) {
-            alert('Пожалуйста, выберите дату и время');
+        container.innerHTML = leaderboard.map((user, index) => {
+            const medals = ['🥇', '🥈', '🥉'];
+            const medal = index < 3 ? medals[index] : `${index + 1}.`;
+            const isMe = user.userId === this.user.uid;
+
+            return `
+                <div class="flex items-center gap-3 p-3 rounded-lg ${isMe ? 'bg-crisp-light border-2 border-crisp-orange' : 'bg-gray-50'}">
+                    <span class="text-2xl w-8">${medal}</span>
+                    <img src="${user.photoURL || 'https://via.placeholder.com/40'}" class="w-10 h-10 rounded-full object-cover">
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800">${user.username} ${isMe ? '(Вы)' : ''}</p>
+                    </div>
+                    <p class="text-xl font-bold text-crisp-dark">${user.total}г</p>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async loadHistory() {
+        const snapshot = await db.collection('entries')
+            .where('userId', '==', this.user.uid)
+            .orderBy('timestamp', 'desc')
+            .limit(20)
+            .get();
+
+        const entries = [];
+        snapshot.forEach(doc => {
+            entries.push({ id: doc.id, ...doc.data() });
+        });
+
+        this.renderHistory(entries);
+    }
+
+    renderHistory(entries) {
+        const container = document.getElementById('historyList');
+
+        if (entries.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 text-center py-8">Записей пока нет</p>';
             return;
         }
 
-        if (!this.selectedSnackType) {
-            alert('Пожалуйста, выберите тип снека');
-            return;
-        }
-
-        this.storage.addEntry(grams, dateTime, this.selectedSnackType);
-        this.closeModal();
-        this.render();
-
-        const snackName = SNACK_TYPES[this.selectedSnackType].name;
-        this.showToast(`✅ ${snackName} ${grams}г добавлено`);
-    }
-
-    showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-50 animate-fade-in';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            toast.remove();
-        }, 2000);
-    }
-
-    resetData() {
-        if (confirm('Вы уверены, что хотите удалить все свои данные?')) {
-            this.storage.clearAll();
-            this.render();
-            this.showToast('🗑️ Данные очищены');
-        }
-    }
-
-    render() {
-        this.renderStats();
-        this.renderInsight();
-        this.renderHistory();
-        this.renderCharts();
-    }
-
-    renderStats() {
-        this.elements.todayCount.textContent = this.analytics.getTodayTotal();
-        this.elements.weekCount.textContent = this.analytics.getWeekTotal();
-        this.elements.monthCount.textContent = this.analytics.getMonthTotal();
-    }
-
-    renderInsight() {
-        const insight = this.analytics.getInsight();
-        if (insight) {
-            this.elements.insightCard.classList.remove('hidden');
-            this.elements.insightText.textContent = insight;
-        } else {
-            this.elements.insightCard.classList.add('hidden');
-        }
-    }
-
-    renderHistory() {
-        const data = this.storage.getData().sort((a, b) => 
-            new Date(b.dateTime) - new Date(a.dateTime)
-        );
-
-        if (data.length === 0) {
-            this.elements.historyList.innerHTML = '<p class="text-gray-400 text-center py-8">Записей пока нет</p>';
-            return;
-        }
-
-        this.elements.historyList.innerHTML = data.map(entry => {
-            const date = new Date(entry.dateTime);
-            const formattedDate = date.toLocaleDateString('ru-RU', { 
-                day: 'numeric', 
+        container.innerHTML = entries.map(entry => {
+            const date = entry.timestamp.toDate();
+            const formatted = date.toLocaleDateString('ru-RU', {
+                day: 'numeric',
                 month: 'short',
                 hour: '2-digit',
                 minute: '2-digit'
             });
 
-            const snack = SNACK_TYPES[entry.snackType] || SNACK_TYPES['other'];
-
             return `
-                <div class="history-item flex items-center justify-between p-3 rounded-lg border border-gray-200">
+                <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-crisp-light transition">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-crisp-yellow rounded-full flex items-center justify-center text-2xl">
-                            ${snack.emoji}
-                        </div>
+                        <div class="text-2xl">${entry.emoji || '🍟'}</div>
                         <div>
-                            <p class="font-semibold text-gray-800">${entry.grams}г • ${snack.name}</p>
-                            <p class="text-sm text-gray-500">${formattedDate}</p>
+                            <p class="font-semibold text-gray-800">${entry.grams}г • ${entry.name}</p>
+                            <p class="text-sm text-gray-500">${formatted}</p>
                         </div>
                     </div>
-                    <button class="delete-btn text-gray-400 hover:text-red-500 transition" data-id="${entry.id}">
+                    <button class="delete-btn text-gray-400 hover:text-red-500 transition" onclick="app.deleteEntry('${entry.id}')">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -542,70 +414,79 @@ class CrispUI {
         }).join('');
 
         lucide.createIcons();
+    }
 
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = parseInt(btn.dataset.id);
-                this.storage.deleteEntry(id);
-                this.render();
-                this.showToast('🗑️ Запись удалена');
+    async renderComparisonChart() {
+        const days = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            days.push({
+                date: date.toISOString().split('T')[0],
+                label: this.formatDateLabel(date),
+                users: {}
             });
-        });
-    }
-
-    renderCharts() {
-        this.renderBarChart();
-        this.renderLineChart();
-    }
-
-    renderBarChart() {
-        const data = this.analytics.getLast7DaysComparison();
-        
-        if (this.charts.bar) {
-            this.charts.bar.destroy();
         }
 
-        const ctx = this.elements.barChart.getContext('2d');
+        const snapshot = await db.collection('entries')
+            .where('date', '>=', days[0].date)
+            .get();
 
-        this.charts.bar = new Chart(ctx, {
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const day = days.find(d => d.date === data.date);
+            if (day) {
+                if (!day.users[data.userId]) {
+                    day.users[data.userId] = {
+                        username: data.username,
+                        total: 0
+                    };
+                }
+                day.users[data.userId].total += data.grams;
+            }
+        });
+
+        this.drawComparisonChart(days);
+    }
+
+    drawComparisonChart(days) {
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+        // Get all unique users
+        const allUsers = new Set();
+        days.forEach(day => {
+            Object.keys(day.users).forEach(userId => allUsers.add(userId));
+        });
+
+        const colors = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+        const datasets = Array.from(allUsers).map((userId, index) => {
+            const username = days.find(d => d.users[userId])?.users[userId]?.username || 'Unknown';
+            return {
+                label: username,
+                data: days.map(d => d.users[userId]?.total || 0),
+                backgroundColor: colors[index % colors.length],
+                borderColor: colors[index % colors.length],
+                borderWidth: 2,
+                borderRadius: 8
+            };
+        });
+
+        new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: data.map(d => d.label),
-                datasets: [
-                    {
-                        label: 'Саша',
-                        data: data.map(d => d.sasha),
-                        backgroundColor: '#4F46E5',
-                        borderColor: '#4F46E5',
-                        borderWidth: 2,
-                        borderRadius: 8
-                    },
-                    {
-                        label: 'Никита',
-                        data: data.map(d => d.nikita),
-                        backgroundColor: '#10B981',
-                        borderColor: '#10B981',
-                        borderWidth: 2,
-                        borderRadius: 8
-                    }
-                ]
+                labels: days.map(d => d.label),
+                datasets: datasets
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
                 plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    }
+                    legend: { display: true }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return value + 'г';
-                            }
+                            callback: value => value + 'г'
                         }
                     }
                 }
@@ -613,67 +494,221 @@ class CrispUI {
         });
     }
 
-    renderLineChart() {
-        const data = this.analytics.getMonthCumulative();
+    formatDateLabel(date) {
+        const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        return `${days[date.getDay()]} ${date.getDate()}`;
+    }
+
+    // ==========================================
+    // ADD SNACK MODAL
+    // ==========================================
+
+    openAddModal() {
+        currentSelection = { category: null, brand: null, flavor: null, size: null };
+        document.getElementById('addModal').classList.remove('hidden');
+        document.getElementById('customGrams').value = '';
         
-        if (this.charts.line) {
-            this.charts.line.destroy();
-        }
+        const now = new Date();
+        document.getElementById('dateTimeInput').value = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+            .toISOString().slice(0, 16);
 
-        const ctx = this.elements.lineChart.getContext('2d');
-        const user = this.storage.getCurrentUser();
-        const color = user === 'sasha' ? '#4F46E5' : '#10B981';
+        this.switchTab('chips');
+        this.updateSummary();
+    }
 
-        this.charts.line = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map(d => d.label),
-                datasets: [{
-                    label: 'Накопленный итог',
-                    data: data.map(d => d.cumulative),
-                    borderColor: color,
-                    backgroundColor: color + '20',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value + 'г';
-                            }
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            maxTicksLimit: 10
-                        }
-                    }
-                }
+    closeAddModal() {
+        document.getElementById('addModal').classList.add('hidden');
+    }
+
+    switchTab(tab) {
+        currentSelection.category = tab;
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.dataset.tab === tab) {
+                btn.classList.add('active', 'border-crisp-orange', 'text-crisp-orange');
+                btn.classList.remove('border-transparent', 'text-gray-600');
+            } else {
+                btn.classList.remove('active', 'border-crisp-orange', 'text-crisp-orange');
+                btn.classList.add('border-transparent', 'text-gray-600');
             }
         });
+
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        document.getElementById(tab + 'Tab').classList.remove('hidden');
+
+        this.resetSelection();
+    }
+
+    resetSelection() {
+        currentSelection.brand = null;
+        currentSelection.flavor = null;
+        currentSelection.size = null;
+        
+        document.getElementById('chipsFlavorsSection').classList.add('hidden');
+        document.getElementById('chipsSizesSection').classList.add('hidden');
+        document.getElementById('croutonsFlavorsSection').classList.add('hidden');
+        document.getElementById('croutonsSizesSection').classList.add('hidden');
+        
+        this.updateSummary();
+    }
+
+    renderChipsBrands() {
+        const container = document.getElementById('chipsBrands');
+        container.innerHTML = Object.entries(SNACKS_DATABASE.chips.brands).map(([key, brand]) => `
+            <button class="select-btn p-4 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectBrand('chips', '${key}')">
+                <div class="text-3xl mb-2">${brand.emoji}</div>
+                <div class="text-sm font-semibold">${brand.name}</div>
+            </button>
+        `).join('');
+    }
+
+    renderCroutonsBrands() {
+        const container = document.getElementById('croutonsBrands');
+        container.innerHTML = Object.entries(SNACKS_DATABASE.croutons.brands).map(([key, brand]) => `
+            <button class="select-btn p-4 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectBrand('croutons', '${key}')">
+                <div class="text-3xl mb-2">${brand.emoji}</div>
+                <div class="text-sm font-semibold">${brand.name}</div>
+            </button>
+        `).join('');
+    }
+
+    selectBrand(category, brandKey) {
+        currentSelection.brand = brandKey;
+        currentSelection.flavor = null;
+        currentSelection.size = null;
+
+        const brand = SNACKS_DATABASE[category].brands[brandKey];
+        const flavorsContainer = document.getElementById(category + 'Flavors');
+        
+        flavorsContainer.innerHTML = Object.entries(brand.flavors).map(([key, flavor]) => `
+            <button class="select-btn p-4 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectFlavor('${category}', '${key}')">
+                <div class="text-2xl mb-1">${flavor.emoji}</div>
+                <div class="text-xs font-semibold">${flavor.name}</div>
+            </button>
+        `).join('');
+
+        document.getElementById(category + 'FlavorsSection').classList.remove('hidden');
+        document.getElementById(category + 'SizesSection').classList.add('hidden');
+        
+        this.updateSummary();
+    }
+
+    selectFlavor(category, flavorKey) {
+        currentSelection.flavor = flavorKey;
+        currentSelection.size = null;
+
+        const sizesContainer = document.getElementById(category + 'Sizes');
+        sizesContainer.innerHTML = SNACKS_DATABASE[category].sizes.map(size => `
+            <button class="select-btn p-4 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectSize(${size.grams})">
+                <div class="text-2xl mb-1">${size.emoji}</div>
+                <div class="font-bold text-crisp-dark">${size.grams}г</div>
+                <div class="text-xs text-gray-600">${size.label}</div>
+            </button>
+        `).join('');
+
+        document.getElementById(category + 'SizesSection').classList.remove('hidden');
+        
+        this.updateSummary();
+    }
+
+    selectSize(grams) {
+        currentSelection.size = grams;
+        document.getElementById('customGrams').value = grams;
+        this.updateSummary();
+    }
+
+    updateSummary() {
+        const { category, brand, flavor, size } = currentSelection;
+
+        if (!category || !brand || !flavor) {
+            document.getElementById('selectionSummary').classList.add('hidden');
+            return;
+        }
+
+        const brandData = SNACKS_DATABASE[category].brands[brand];
+        const flavorData = brandData.flavors[flavor];
+        const sizeText = size ? ` • ${size}г` : '';
+
+        document.getElementById('summaryText').textContent = 
+            `${brandData.emoji} ${brandData.name} ${flavorData.emoji} ${flavorData.name}${sizeText}`;
+        document.getElementById('selectionSummary').classList.remove('hidden');
+    }
+
+    async saveSnack() {
+        const grams = parseInt(document.getElementById('customGrams').value);
+        const dateTime = document.getElementById('dateTimeInput').value;
+
+        if (!grams || grams <= 0) {
+            alert('Введите количество грамм');
+            return;
+        }
+
+        if (!currentSelection.brand || !currentSelection.flavor) {
+            alert('Выберите снек');
+            return;
+        }
+
+        const brandData = SNACKS_DATABASE[currentSelection.category].brands[currentSelection.brand];
+        const flavorData = brandData.flavors[currentSelection.flavor];
+
+        const entry = {
+            userId: this.user.uid,
+            username: this.profile.username,
+            userPhotoURL: this.profile.photoURL,
+            category: currentSelection.category,
+            brand: currentSelection.brand,
+            flavor: currentSelection.flavor,
+            grams: grams,
+            name: `${brandData.name} ${flavorData.name}`,
+            emoji: brandData.emoji,
+            date: dateTime.split('T')[0],
+            timestamp: firebase.firestore.Timestamp.fromDate(new Date(dateTime))
+        };
+
+        await db.collection('entries').add(entry);
+
+        this.closeAddModal();
+        this.loadData();
+        this.showToast(`✅ ${entry.name} ${grams}г добавлено`);
+    }
+
+    async deleteEntry(id) {
+        if (confirm('Удалить запись?')) {
+            await db.collection('entries').doc(id).delete();
+            this.loadData();
+            this.showToast('🗑️ Запись удалена');
+        }
+    }
+
+    showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-50';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    showProfile() {
+        alert('Профиль: ' + this.profile.username + '\n' + this.profile.email);
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const storage = new CrispStorage();
-    
-    if (storage.getCurrentUser()) {
-        const analytics = new CrispAnalytics(storage);
-        window.crispApp = new CrispUI(storage, analytics);
-    }
+// ==========================================
+// INITIALIZATION
+// ==========================================
 
-    lucide.createIcons();
-    console.log('🍟 CrispTracker Pro initialized!');
+document.addEventListener('DOMContentLoaded', () => {
+    new AuthManager();
+    
+    // Save button handler
+    document.getElementById('saveSnackBtn').onclick = () => {
+        if (window.app) {
+            window.app.saveSnack();
+        }
+    };
+
+    console.log('🍟 CrispTracker Pro with Firebase initialized!');
 });
