@@ -1,4 +1,27 @@
 // ==========================================
+// QUOTES DATABASE
+// ==========================================
+
+const QUOTES = [
+    "Чипсы — это не еда, это способ жизни.",
+    "Почему чипсы такие вкусные? Потому что они знают, что их съедят.",
+    "Я не ленивый, я просто в режиме 'чипсовой экономии'.",
+    "Чипсы — единственная валюта, которую я признаю.",
+    "Диета? Я на диете из чипсов.",
+    "Чипсы не решают проблемы, но шоколад тоже.",
+    "Если чипсы — зло, то я злодей.",
+    "Чипсы — это овощи, просто очень обработанные.",
+    "Я считаю калории... в пачках чипсов.",
+    "Чипсы — мой духовный наставник.",
+    "Открыл пачку чипсов «на попробовать». Пачка закончилась.",
+    "Чипсы и я — это серьёзные отношения.",
+    "Я не зависим от чипсов, я просто очень их люблю.",
+    "Чипсы — это хрустящее счастье.",
+    "Почему делиться чипсами? Это же не коммунизм!",
+    "Чипсы — мой антидепрессант без рецепта."
+];
+
+// ==========================================
 // SNACK DATABASE
 // ==========================================
 
@@ -12,7 +35,7 @@ const SNACKS_DATABASE = {
                     classic: { name: "Классические", emoji: "🥔" },
                     paprika: { name: "Паприка", emoji: "🌶️" },
                     cheese: { name: "Сыр", emoji: "🧀" },
-                    sour_cream: { name: "Сметана и зелень", emoji: "🌿" },
+                    sour_cream: { name: "Сметана", emoji: "🌿" },
                     bacon: { name: "Бекон", emoji: "🥓" }
                 }
             },
@@ -31,20 +54,20 @@ const SNACKS_DATABASE = {
                 emoji: "🧡",
                 flavors: {
                     cheese: { name: "Сыр", emoji: "🧀" },
-                    flamin_hot: { name: "Flamin' Hot", emoji: "🔥" }
+                    flamin_hot: { name: "Flamin Hot", emoji: "🔥" }
                 }
             },
             doritos: {
                 name: "Doritos",
                 emoji: "🔺",
                 flavors: {
-                    nacho: { name: "Nacho Cheese", emoji: "🧀" },
+                    nacho: { name: "Nacho", emoji: "🧀" },
                     cool_ranch: { name: "Cool Ranch", emoji: "🌿" }
                 }
             }
         },
         sizes: [
-            { grams: 40, label: "Маленькая", emoji: "📦" },
+            { grams: 40, label: "Мини", emoji: "📦" },
             { grams: 90, label: "Средняя", emoji: "📦📦" },
             { grams: 150, label: "Большая", emoji: "📦📦📦" }
         ]
@@ -64,7 +87,7 @@ const SNACKS_DATABASE = {
                 name: "Кириешки",
                 emoji: "🌾",
                 flavors: {
-                    rye_salt: { name: "Ржаные с солью", emoji: "🧂" },
+                    rye: { name: "Ржаные", emoji: "🧂" },
                     bacon: { name: "Бекон", emoji: "🥓" },
                     salami: { name: "Салями", emoji: "🍕" }
                 }
@@ -80,7 +103,7 @@ const SNACKS_DATABASE = {
             }
         },
         sizes: [
-            { grams: 60, label: "Маленькая", emoji: "📦" },
+            { grams: 60, label: "Мини", emoji: "📦" },
             { grams: 100, label: "Средняя", emoji: "📦📦" },
             { grams: 150, label: "Большая", emoji: "📦📦📦" }
         ]
@@ -98,6 +121,15 @@ let currentSelection = {
     flavor: null,
     size: null
 };
+
+// ==========================================
+// UTILS
+// ==========================================
+
+function showRandomQuote() {
+    const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    document.getElementById('quoteText').textContent = quote;
+}
 
 // ==========================================
 // AUTH MANAGER
@@ -137,12 +169,17 @@ class AuthManager {
 
     async loginWithGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        
         try {
             await auth.signInWithPopup(provider);
         } catch (error) {
             if (error.code === 'auth/popup-blocked') {
                 await auth.signInWithRedirect(provider);
             } else {
+                console.error('Login error:', error);
                 alert('Ошибка входа: ' + error.message);
             }
         }
@@ -182,7 +219,6 @@ class AuthManager {
             return;
         }
 
-        // Check username
         const usernameQuery = await db.collection('users')
             .where('username', '==', username)
             .get();
@@ -213,7 +249,7 @@ class AuthManager {
     }
 
     async logout() {
-        if (confirm('Выйти?')) {
+        if (confirm('Выйти из аккаунта?')) {
             await auth.signOut();
             location.reload();
         }
@@ -236,18 +272,18 @@ class CrispTrackerApp {
     }
 
     initUI() {
-        document.getElementById('currentUserName').textContent = `@${this.profile.username}`;
         document.getElementById('headerAvatar').src = this.profile.photoURL;
 
         // Buttons
         document.getElementById('addBtn').onclick = () => this.openAddModal();
         document.getElementById('closeModal').onclick = () => this.closeAddModal();
-        document.getElementById('logoutBtn').onclick = () => new AuthManager().logout();
         document.getElementById('profileBtn').onclick = () => this.openEditProfile();
-        document.getElementById('addFriendBtn').onclick = () => this.openAddFriend();
-        document.getElementById('closeFriendModal').onclick = () => this.closeAddFriend();
+        document.getElementById('friendsBtn').onclick = () => this.openFriendsModal();
+        document.getElementById('closeFriendsModal').onclick = () => this.closeFriendsModal();
         document.getElementById('searchFriendBtn').onclick = () => this.searchFriend();
         document.getElementById('saveSnackBtn').onclick = () => this.saveSnack();
+        document.getElementById('newQuoteBtn').onclick = () => showRandomQuote();
+        document.getElementById('logoutBtn').onclick = () => new AuthManager().logout();
 
         // Edit profile
         document.getElementById('cancelEditBtn').onclick = () => this.closeEditProfile();
@@ -264,7 +300,7 @@ class CrispTrackerApp {
             }
         };
 
-        // Add brand buttons
+        // Add brand
         document.getElementById('addChipsBrandBtn').onclick = () => this.openAddBrand('chips');
         document.getElementById('addCroutonsBrandBtn').onclick = () => this.openAddBrand('croutons');
         document.getElementById('cancelBrandBtn').onclick = () => this.closeAddBrand();
@@ -277,6 +313,7 @@ class CrispTrackerApp {
 
         this.renderChipsBrands();
         this.renderCroutonsBrands();
+        showRandomQuote();
 
         lucide.createIcons();
     }
@@ -290,92 +327,27 @@ class CrispTrackerApp {
     }
 
     async loadData() {
-        await this.loadMyStats();
-        await this.loadFriends();
-        await this.loadLeaderboard();
-        await this.loadHistory();
-        await this.renderCharts();
+        await Promise.all([
+            this.loadTopUsers(),
+            this.loadHistory(),
+            this.renderCharts()
+        ]);
     }
 
-    async loadMyStats() {
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        const snapshot = await db.collection('entries')
-            .where('userId', '==', this.user.uid)
-            .where('date', '>=', monthAgo.toISOString().split('T')[0])
-            .get();
-
-        let todayTotal = 0;
-        let weekTotal = 0;
-        let monthTotal = 0;
-
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const grams = data.grams;
-            monthTotal += grams;
-
-            if (data.date >= weekAgo.toISOString().split('T')[0]) {
-                weekTotal += grams;
-            }
-
-            if (data.date === today) {
-                todayTotal += grams;
-            }
-        });
-
-        document.getElementById('myTodayCount').textContent = todayTotal + 'г';
-        document.getElementById('myWeekCount').textContent = weekTotal + 'г';
-        document.getElementById('myMonthCount').textContent = monthTotal + 'г';
-    }
-
-    async loadFriends() {
-        const friends = this.profile.friends || [];
-        document.getElementById('friendsCount').textContent = friends.length;
-
-        if (friends.length === 0) {
-            document.getElementById('friendsList').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Нет друзей</p>';
-            return;
-        }
-
-        const friendsData = await Promise.all(
-            friends.map(async (friendId) => {
-                const doc = await db.collection('users').doc(friendId).get();
-                return doc.exists ? { id: friendId, ...doc.data() } : null;
-            })
-        );
-
-        const validFriends = friendsData.filter(f => f !== null);
-
-        document.getElementById('friendsList').innerHTML = validFriends.map(friend => `
-            <div class="flex items-center gap-2">
-                <img src="${friend.photoURL}" class="w-6 h-6 rounded-full object-cover">
-                <span class="text-xs text-gray-700 flex-1 truncate">${friend.username}</span>
-                <button onclick="app.removeFriend('${friend.id}')" class="text-gray-400 hover:text-red-500">
-                    <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-            </div>
-        `).join('');
-
-        lucide.createIcons();
-    }
-
-    async loadLeaderboard() {
+    async loadTopUsers() {
         const friends = this.profile.friends || [];
         const userIds = [this.user.uid, ...friends];
 
-        if (userIds.length === 1) {
-            document.getElementById('leaderboard').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Добавьте друзей</p>';
-            return;
+        document.getElementById('friendsBadge').textContent = friends.length;
+        if (friends.length > 0) {
+            document.getElementById('friendsBadge').classList.remove('hidden');
         }
 
         const monthAgo = new Date();
         monthAgo.setDate(monthAgo.getDate() - 30);
 
         const snapshot = await db.collection('entries')
-            .where('userId', 'in', userIds)
+            .where('userId', 'in', userIds.slice(0, 10))
             .where('date', '>=', monthAgo.toISOString().split('T')[0])
             .get();
 
@@ -394,29 +366,29 @@ class CrispTrackerApp {
             userTotals[data.userId].total += data.grams;
         });
 
-        const leaderboard = Object.values(userTotals)
+        const topUsers = Object.values(userTotals)
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
-        if (leaderboard.length === 0) {
-            document.getElementById('leaderboard').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Нет данных</p>';
+        if (topUsers.length === 0) {
+            document.getElementById('topUsers').innerHTML = '<p class="text-sm text-gray-400 w-full text-center py-4">Добавьте друзей</p>';
             return;
         }
 
         const medals = ['🥇', '🥈', '🥉'];
 
-        document.getElementById('leaderboard').innerHTML = leaderboard.map((user, index) => {
-            const medal = index < 3 ? medals[index] : `${index + 1}.`;
+        document.getElementById('topUsers').innerHTML = topUsers.map((user, index) => {
+            const medal = index < 3 ? medals[index] : '';
             const isMe = user.userId === this.user.uid;
 
             return `
-                <div class="flex items-center gap-2 p-2 rounded-lg ${isMe ? 'bg-crisp-light' : 'bg-gray-50'}">
-                    <span class="text-lg w-6">${medal}</span>
-                    <img src="${user.photoURL}" class="w-8 h-8 rounded-full object-cover">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-semibold text-gray-800 truncate">${user.username}</p>
+                <div class="flex-shrink-0 bg-${isMe ? 'yellow-50 border-2 border-primary' : 'gray-50'} rounded-xl p-3 min-w-[140px]">
+                    <div class="flex items-center gap-2 mb-2">
+                        <img src="${user.photoURL}" class="w-10 h-10 rounded-full object-cover">
+                        <span class="text-xl">${medal}</span>
                     </div>
-                    <p class="text-sm font-bold text-crisp-dark">${user.total}г</p>
+                    <p class="text-sm font-bold text-text truncate">${user.username}</p>
+                    <p class="text-xs text-gray-600">${user.total}г</p>
                 </div>
             `;
         }).join('');
@@ -435,7 +407,7 @@ class CrispTrackerApp {
         });
 
         if (entries.length === 0) {
-            document.getElementById('historyList').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Записей нет</p>';
+            document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Записей нет</p>';
             return;
         }
 
@@ -449,11 +421,11 @@ class CrispTrackerApp {
             });
 
             return `
-                <div class="flex items-center justify-between p-2 rounded-lg border border-gray-200 hover:bg-crisp-light transition">
-                    <div class="flex items-center gap-2 min-w-0 flex-1">
-                        <div class="text-lg">${entry.emoji || '🍟'}</div>
+                <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-yellow-50 transition">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <div class="text-2xl">${entry.emoji || '🍟'}</div>
                         <div class="min-w-0 flex-1">
-                            <p class="text-xs font-semibold text-gray-800 truncate">${entry.grams}г • ${entry.name}</p>
+                            <p class="text-sm font-semibold text-text truncate">${entry.grams}г • ${entry.name}</p>
                             <p class="text-xs text-gray-500">${formatted}</p>
                         </div>
                     </div>
@@ -479,7 +451,7 @@ class CrispTrackerApp {
             date.setDate(date.getDate() - i);
             days.push({
                 date: date.toISOString().split('T')[0],
-                label: this.formatDateLabel(date),
+                label: date.getDate().toString(),
                 total: 0
             });
         }
@@ -499,14 +471,19 @@ class CrispTrackerApp {
         if (this.charts.my) this.charts.my.destroy();
 
         this.charts.my = new Chart(ctx, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: days.map(d => d.label),
                 datasets: [{
                     label: 'Грамм',
                     data: days.map(d => d.total),
-                    backgroundColor: '#FF9A3D',
-                    borderRadius: 6
+                    borderColor: '#FF9900',
+                    backgroundColor: 'rgba(255, 153, 0, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -525,7 +502,7 @@ class CrispTrackerApp {
 
     async renderComparisonChart() {
         const friends = this.profile.friends || [];
-        const userIds = [this.user.uid, ...friends];
+        const userIds = [this.user.uid, ...friends].slice(0, 5);
 
         const days = [];
         for (let i = 6; i >= 0; i--) {
@@ -533,7 +510,7 @@ class CrispTrackerApp {
             date.setDate(date.getDate() - i);
             days.push({
                 date: date.toISOString().split('T')[0],
-                label: this.formatDateLabel(date),
+                label: date.getDate().toString(),
                 users: {}
             });
         }
@@ -562,14 +539,18 @@ class CrispTrackerApp {
             Object.keys(day.users).forEach(userId => allUsers.add(userId));
         });
 
-        const colors = ['#FF9A3D', '#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
+        const colors = ['#FF9900', '#3366FF', '#00CC66', '#F59E0B', '#EF4444'];
         const datasets = Array.from(allUsers).map((userId, index) => {
-            const username = days.find(d => d.users[userId])?.users[userId]?.username || 'Unknown';
+            const username = days.find(d => d.users[userId])?.users[userId]?.username || 'User';
             return {
                 label: username,
                 data: days.map(d => d.users[userId]?.total || 0),
-                backgroundColor: colors[index % colors.length],
-                borderRadius: 6
+                borderColor: colors[index % colors.length],
+                backgroundColor: colors[index % colors.length] + '20',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 3
             };
         });
 
@@ -577,7 +558,7 @@ class CrispTrackerApp {
         if (this.charts.comparison) this.charts.comparison.destroy();
 
         this.charts.comparison = new Chart(ctx, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: days.map(d => d.label),
                 datasets: datasets
@@ -585,7 +566,13 @@ class CrispTrackerApp {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 10 } }
+                    }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -596,23 +583,50 @@ class CrispTrackerApp {
         });
     }
 
-    formatDateLabel(date) {
-        const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-        return `${days[date.getDay()]} ${date.getDate()}`;
-    }
-
     // ==========================================
     // FRIENDS
     // ==========================================
 
-    openAddFriend() {
-        document.getElementById('addFriendModal').classList.remove('hidden');
-        document.getElementById('friendSearchInput').value = '';
-        document.getElementById('friendSearchResult').innerHTML = '';
+    openFriendsModal() {
+        document.getElementById('friendsModal').classList.remove('hidden');
+        this.loadFriendsList();
     }
 
-    closeAddFriend() {
-        document.getElementById('addFriendModal').classList.add('hidden');
+    closeFriendsModal() {
+        document.getElementById('friendsModal').classList.add('hidden');
+    }
+
+    async loadFriendsList() {
+        const friends = this.profile.friends || [];
+
+        if (friends.length === 0) {
+            document.getElementById('friendsList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Нет друзей</p>';
+            return;
+        }
+
+        const friendsData = await Promise.all(
+            friends.map(async (friendId) => {
+                const doc = await db.collection('users').doc(friendId).get();
+                return doc.exists ? { id: friendId, ...doc.data() } : null;
+            })
+        );
+
+        const validFriends = friendsData.filter(f => f !== null);
+
+        document.getElementById('friendsList').innerHTML = validFriends.map(friend => `
+            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-2">
+                <img src="${friend.photoURL}" class="w-12 h-12 rounded-full object-cover">
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-text truncate">${friend.username}</p>
+                    <p class="text-xs text-gray-500 truncate">${friend.email}</p>
+                </div>
+                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </button>
+            </div>
+        `).join('');
+
+        lucide.createIcons();
     }
 
     async searchFriend() {
@@ -624,13 +638,11 @@ class CrispTrackerApp {
 
         let user = null;
 
-        // Search by username
         const usernameQuery = await db.collection('users').where('username', '==', query).limit(1).get();
         if (!usernameQuery.empty) {
             user = { id: usernameQuery.docs[0].id, ...usernameQuery.docs[0].data() };
         }
 
-        // Search by email
         if (!user) {
             const emailQuery = await db.collection('users').where('email', '==', query).limit(1).get();
             if (!emailQuery.empty) {
@@ -639,7 +651,7 @@ class CrispTrackerApp {
         }
 
         if (!user) {
-            resultDiv.innerHTML = '<p class="text-xs text-red-500">Пользователь не найден</p>';
+            resultDiv.innerHTML = '<p class="text-xs text-red-500">Не найден</p>';
             return;
         }
 
@@ -649,21 +661,21 @@ class CrispTrackerApp {
         }
 
         if ((this.profile.friends || []).includes(user.id)) {
-            resultDiv.innerHTML = '<p class="text-xs text-red-500">Уже в друзьях</p>';
+            resultDiv.innerHTML = '<p class="text-xs text-red-500">Уже друг</p>';
             return;
         }
 
         resultDiv.innerHTML = `
-            <div class="border-2 border-crisp-orange rounded-xl p-3 bg-crisp-light">
-                <div class="flex items-center gap-3 mb-3">
-                    <img src="${user.photoURL}" class="w-12 h-12 rounded-full object-cover">
-                    <div>
-                        <p class="font-bold text-gray-800">${user.username}</p>
-                        <p class="text-xs text-gray-600">${user.email}</p>
+            <div class="border-2 border-primary rounded-xl p-3 bg-yellow-50">
+                <div class="flex items-center gap-2 mb-2">
+                    <img src="${user.photoURL}" class="w-10 h-10 rounded-full object-cover">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-text text-sm truncate">${user.username}</p>
+                        <p class="text-xs text-gray-600 truncate">${user.email}</p>
                     </div>
                 </div>
-                <button onclick="app.addFriend('${user.id}')" class="w-full bg-crisp-accent hover:bg-red-600 text-white font-bold py-2 rounded-lg">
-                    Добавить в друзья
+                <button onclick="app.addFriend('${user.id}')" class="w-full bg-primary hover:bg-orange-600 text-white font-bold py-2 rounded-lg text-sm">
+                    Добавить
                 </button>
             </div>
         `;
@@ -676,20 +688,23 @@ class CrispTrackerApp {
         await db.collection('users').doc(this.user.uid).update({ friends });
 
         this.profile.friends = friends;
-        this.closeAddFriend();
+        document.getElementById('friendSearchInput').value = '';
+        document.getElementById('friendSearchResult').innerHTML = '';
+        this.loadFriendsList();
         this.loadData();
         this.showToast('✅ Друг добавлен!');
     }
 
     async removeFriend(friendId) {
-        if (!confirm('Удалить из друзей?')) return;
+        if (!confirm('Удалить?')) return;
 
         const friends = (this.profile.friends || []).filter(id => id !== friendId);
         await db.collection('users').doc(this.user.uid).update({ friends });
 
         this.profile.friends = friends;
+        this.loadFriendsList();
         this.loadData();
-        this.showToast('🗑️ Удалён из друзей');
+        this.showToast('🗑️ Удалён');
     }
 
     // ==========================================
@@ -712,7 +727,7 @@ class CrispTrackerApp {
         const username = document.getElementById('editUsernameInput').value.trim().toLowerCase();
 
         if (!username || !/^[a-z0-9_]+$/.test(username)) {
-            alert('Ник должен содержать только латиницу, цифры и _');
+            alert('Ник: латиница, цифры, _');
             return;
         }
 
@@ -722,7 +737,7 @@ class CrispTrackerApp {
                 .get();
 
             if (!usernameQuery.empty) {
-                alert('Этот ник уже занят');
+                alert('Ник занят');
                 return;
             }
         }
@@ -741,12 +756,12 @@ class CrispTrackerApp {
             photoURL: photoURL
         });
 
-        this.showToast('✅ Профиль обновлён!');
+        this.showToast('✅ Сохранено!');
         setTimeout(() => location.reload(), 1000);
     }
 
     // ==========================================
-    // ADD SNACK MODAL
+    // ADD SNACK
     // ==========================================
 
     openAddModal() {
@@ -771,10 +786,10 @@ class CrispTrackerApp {
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
             if (btn.dataset.tab === tab) {
-                btn.classList.add('border-crisp-orange', 'text-crisp-orange');
+                btn.classList.add('border-primary', 'text-primary');
                 btn.classList.remove('border-transparent', 'text-gray-600');
             } else {
-                btn.classList.remove('border-crisp-orange', 'text-crisp-orange');
+                btn.classList.remove('border-primary', 'text-primary');
                 btn.classList.add('border-transparent', 'text-gray-600');
             }
         });
@@ -809,8 +824,8 @@ class CrispTrackerApp {
         const brands = this.getAllBrands('chips');
         
         container.innerHTML = Object.entries(brands).map(([key, brand]) => `
-            <button type="button" class="select-btn p-3 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectBrand('chips', '${key}')">
-                <div class="text-2xl mb-1">${brand.emoji}</div>
+            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectBrand('chips', '${key}')">
+                <div class="text-xl mb-1">${brand.emoji}</div>
                 <div class="text-xs font-semibold truncate">${brand.name}</div>
             </button>
         `).join('');
@@ -821,8 +836,8 @@ class CrispTrackerApp {
         const brands = this.getAllBrands('croutons');
         
         container.innerHTML = Object.entries(brands).map(([key, brand]) => `
-            <button type="button" class="select-btn p-3 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectBrand('croutons', '${key}')">
-                <div class="text-2xl mb-1">${brand.emoji}</div>
+            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectBrand('croutons', '${key}')">
+                <div class="text-xl mb-1">${brand.emoji}</div>
                 <div class="text-xs font-semibold truncate">${brand.name}</div>
             </button>
         `).join('');
@@ -838,8 +853,8 @@ class CrispTrackerApp {
         const flavorsContainer = document.getElementById(category + 'Flavors');
         
         flavorsContainer.innerHTML = Object.entries(brand.flavors).map(([key, flavor]) => `
-            <button type="button" class="select-btn p-3 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectFlavor('${category}', '${key}')">
-                <div class="text-xl mb-1">${flavor.emoji}</div>
+            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectFlavor('${category}', '${key}')">
+                <div class="text-lg mb-1">${flavor.emoji}</div>
                 <div class="text-xs font-semibold truncate">${flavor.name}</div>
             </button>
         `).join('');
@@ -856,9 +871,9 @@ class CrispTrackerApp {
 
         const sizesContainer = document.getElementById(category + 'Sizes');
         sizesContainer.innerHTML = SNACKS_DATABASE[category].sizes.map(size => `
-            <button type="button" class="select-btn p-3 border-2 border-gray-300 rounded-xl hover:border-crisp-orange hover:bg-crisp-light transition text-center" onclick="app.selectSize(${size.grams})">
-                <div class="text-xl mb-1">${size.emoji}</div>
-                <div class="font-bold text-crisp-dark">${size.grams}г</div>
+            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectSize(${size.grams})">
+                <div class="text-lg mb-1">${size.emoji}</div>
+                <div class="font-bold text-primary">${size.grams}г</div>
                 <div class="text-xs text-gray-600">${size.label}</div>
             </button>
         `).join('');
@@ -892,86 +907,56 @@ class CrispTrackerApp {
         document.getElementById('selectionSummary').classList.remove('hidden');
     }
 
-   async saveSnack() {
-    console.log('=== SAVING SNACK ===');
-    console.log('Current selection:', currentSelection);
-    
-    const grams = parseInt(document.getElementById('customGrams').value);
-    const dateTime = document.getElementById('dateTimeInput').value;
+    async saveSnack() {
+        const grams = parseInt(document.getElementById('customGrams').value);
+        const dateTime = document.getElementById('dateTimeInput').value;
 
-    console.log('Grams:', grams);
-    console.log('DateTime:', dateTime);
+        if (!grams || grams <= 0) {
+            alert('Введите граммы');
+            return;
+        }
 
-    if (!grams || grams <= 0) {
-        alert('Введите количество грамм');
-        return;
+        if (!currentSelection.brand || !currentSelection.flavor) {
+            alert('Выберите снек');
+            return;
+        }
+
+        const brands = this.getAllBrands(currentSelection.category);
+        const brandData = brands[currentSelection.brand];
+        const flavorData = brandData.flavors[currentSelection.flavor];
+
+        const entry = {
+            userId: this.user.uid,
+            username: this.profile.username,
+            userPhotoURL: this.profile.photoURL,
+            category: currentSelection.category,
+            brand: currentSelection.brand,
+            flavor: currentSelection.flavor,
+            grams: grams,
+            name: `${brandData.name} ${flavorData.name}`,
+            emoji: brandData.emoji,
+            date: dateTime.split('T')[0],
+            timestamp: firebase.firestore.Timestamp.fromDate(new Date(dateTime))
+        };
+
+        try {
+            await db.collection('entries').add(entry);
+            this.closeAddModal();
+            await this.loadData();
+            this.showToast(`✅ ${grams}г добавлено!`);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Ошибка: ' + error.message);
+        }
     }
 
-    if (!dateTime) {
-        alert('Выберите дату');
-        return;
+    async deleteEntry(id) {
+        if (confirm('Удалить?')) {
+            await db.collection('entries').doc(id).delete();
+            this.loadData();
+            this.showToast('🗑️ Удалено');
+        }
     }
-
-    if (!currentSelection.category) {
-        alert('Выберите категорию (чипсы/сухарики)');
-        return;
-    }
-
-    if (!currentSelection.brand || !currentSelection.flavor) {
-        alert('Выберите снек полностью');
-        console.log('Missing brand or flavor');
-        return;
-    }
-
-    const brands = this.getAllBrands(currentSelection.category);
-    console.log('Available brands:', Object.keys(brands));
-    
-    const brandData = brands[currentSelection.brand];
-    console.log('Selected brand data:', brandData);
-    
-    if (!brandData) {
-        alert('Ошибка: бренд не найден');
-        console.error('Brand not found:', currentSelection.brand);
-        return;
-    }
-
-    const flavorData = brandData.flavors[currentSelection.flavor];
-    console.log('Selected flavor data:', flavorData);
-
-    if (!flavorData) {
-        alert('Ошибка: вкус не найден');
-        console.error('Flavor not found:', currentSelection.flavor);
-        return;
-    }
-
-    const entry = {
-        userId: this.user.uid,
-        username: this.profile.username,
-        userPhotoURL: this.profile.photoURL,
-        category: currentSelection.category,
-        brand: currentSelection.brand,
-        flavor: currentSelection.flavor,
-        grams: grams,
-        name: `${brandData.name} ${flavorData.name}`,
-        emoji: brandData.emoji,
-        date: dateTime.split('T')[0],
-        timestamp: firebase.firestore.Timestamp.fromDate(new Date(dateTime))
-    };
-
-    console.log('Entry to save:', entry);
-
-    try {
-        const docRef = await db.collection('entries').add(entry);
-        console.log('✅ Saved with ID:', docRef.id);
-
-        this.closeAddModal();
-        await this.loadData();
-        this.showToast(`✅ ${entry.name} ${grams}г добавлено!`);
-    } catch (error) {
-        console.error('❌ Error saving:', error);
-        alert('Ошибка сохранения: ' + error.message);
-    }
-}
 
     // ==========================================
     // CUSTOM BRANDS
@@ -996,7 +981,7 @@ class CrispTrackerApp {
         const flavorsText = document.getElementById('newBrandFlavors').value.trim();
 
         if (!name || !flavorsText) {
-            alert('Заполните название и вкусы');
+            alert('Заполните все поля');
             return;
         }
 
@@ -1039,7 +1024,7 @@ class CrispTrackerApp {
 }
 
 // ==========================================
-// INITIALIZATION
+// INIT
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
