@@ -22,9 +22,26 @@ const QUOTES = [
 ];
 
 // ==========================================
-// SNACK DATABASE (Default)
+// TELEGRAM INTEGRATION
 // ==========================================
 
+let isTelegramApp = false;
+let telegramUser = null;
+
+// Check after scripts load
+setTimeout(() => {
+    if (window.tgApp && window.tgApp.isAvailable()) {
+        isTelegramApp = true;
+        telegramUser = window.tgApp.getUser();
+        console.log('✅ Telegram mode activated:', telegramUser);
+    } else {
+        console.log('❌ Not in Telegram, using Firebase auth');
+    }
+}, 100);
+
+// ==========================================
+// SNACK DATABASE (Default)
+// ==========================================
 const DEFAULT_SNACKS = {
     chips: {
         brands: {
@@ -140,7 +157,7 @@ function showRandomQuote() {
 function formatYearMonth(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+    return ${year}-${month};
 }
 
 function getCurrentYearMonth() {
@@ -156,23 +173,75 @@ function changeMonth(currentMonth, offset) {
 // ==========================================
 // AUTH MANAGER
 // ==========================================
-
 class AuthManager {
     constructor() {
         this.initAuthListener();
     }
 
     initAuthListener() {
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                this.handleLogin(user);
+        // Wait for Telegram to initialize
+        setTimeout(() => {
+            if (isTelegramApp && telegramUser) {
+                console.log('🔵 Using Telegram auth');
+                this.handleTelegramLogin(telegramUser);
             } else {
-                this.showLoginScreen();
+                console.log('🟢 Using Firebase auth');
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        this.handleFirebaseLogin(user);
+                    } else {
+                        this.showFirebaseLogin();
+                    }
+                });
             }
-        });
+        }, 200);
     }
 
-    async handleLogin(user) {
+    async handleTelegramLogin(tgUser) {
+        console.log('Telegram login for:', tgUser.username);
+        
+        const userId = 'tg_' + tgUser.id;
+        currentUser = { uid: userId };
+
+        try {
+            const profileDoc = await db.collection('users').doc(userId).get();
+
+            if (!profileDoc.exists) {
+                console.log('Creating new Telegram user');
+                await db.collection('users').doc(userId).set({
+                    username: tgUser.username,
+                    firstName: tgUser.firstName,
+                    lastName: tgUser.lastName,
+                    email: tg${tgUser.id}@telegram.user,
+                    photoURL: tgUser.photoURL,
+                    telegramId: tgUser.id,
+                    friends: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                const newDoc = await db.collection('users').doc(userId).get();
+                document.getElementById('loginScreen').style.display = 'none';
+                window.app = new CrispTrackerApp({ uid: userId }, newDoc.data());
+            } else {
+                console.log('Existing Telegram user');
+                document.getElementById('loginScreen').style.display = 'none';
+                window.app = new CrispTrackerApp({ uid: userId }, profileDoc.data());
+            }
+
+            if (window.tgApp) {
+                window.tgApp.hapticFeedback('light');
+            }
+        } catch (error) {
+            console.error('Telegram login error:', error);
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ошибка входа: ' + error.message);
+            } else {
+                alert('Ошибка входа: ' + error.message);
+            }
+        }
+    }
+
+    async handleFirebaseLogin(user) {
         currentUser = user;
         const profileDoc = await db.collection('users').doc(user.uid).get();
 
@@ -183,17 +252,35 @@ class AuthManager {
             window.app = new CrispTrackerApp(user, profileDoc.data());
         }
     }
-
-    showLoginScreen() {
+showFirebaseLogin() {
+        document.getElementById('loginScreen').innerHTML = `
+            <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
+                <div class="text-center mb-6">
+                    <div class="inline-block p-4 bg-yellow-100 rounded-full mb-3">
+                        <span class="text-5xl">🍟</span>
+                    </div>
+                    <h1 class="text-3xl font-bold text-text mb-2">CrispTracker</h1>
+                    <p class="text-gray-600 text-sm">Веб-версия</p>
+                </div>
+                <button type="button" id="googleLoginBtn" class="w-full bg-white hover:bg-gray-50 text-text font-bold py-3 rounded-xl shadow-md border-2 border-gray-300 transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Войти через Google
+                </button>
+                <p class="text-center text-gray-400 text-xs mt-4">Или откройте в Telegram: <a href="https://t.me/crisptracker_bot/myapp" class="text-primary">@crisptracker_bot</a></p>
+            </div>
+        `;
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('googleLoginBtn').onclick = () => this.loginWithGoogle();
     }
 
     async loginWithGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
+        provider.setCustomParameters({ prompt: 'select_account' });
         
         try {
             await auth.signInWithPopup(provider);
@@ -201,79 +288,30 @@ class AuthManager {
             if (error.code === 'auth/popup-blocked') {
                 await auth.signInWithRedirect(provider);
             } else {
-                console.error('Login error:', error);
                 alert('Ошибка входа: ' + error.message);
             }
         }
     }
 
     showProfileSetup(user) {
-        document.getElementById('loginScreen').style.display = 'none';
-        const modal = document.getElementById('profileSetupModal');
-        modal.classList.remove('hidden');
-
-        document.getElementById('emailDisplay').value = user.email;
-        document.getElementById('profilePreview').src = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.email);
-
-        document.getElementById('changePhotoBtn').onclick = () => {
-            document.getElementById('photoInput').click();
-        };
-
-        document.getElementById('photoInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('profilePreview').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        document.getElementById('saveProfileBtn').onclick = () => this.saveProfile(user);
-    }
-
-    async saveProfile(user) {
-        const username = document.getElementById('usernameInput').value.trim().toLowerCase();
-
-        if (!username || !/^[a-z0-9_]+$/.test(username)) {
-            alert('Ник должен содержать только латиницу, цифры и _');
-            return;
-        }
-
-        const usernameQuery = await db.collection('users')
-            .where('username', '==', username)
-            .get();
-
-        if (!usernameQuery.empty && usernameQuery.docs[0].id !== user.uid) {
-            alert('Этот ник уже занят');
-            return;
-        }
-
-        const photoFile = document.getElementById('photoInput').files[0];
-        let photoURL = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(username);
-
-        if (photoFile) {
-            const storageRef = storage.ref(`avatars/${user.uid}`);
-            await storageRef.put(photoFile);
-            photoURL = await storageRef.getDownloadURL();
-        }
-
-        await db.collection('users').doc(user.uid).set({
-            username: username,
-            email: user.email,
-            photoURL: photoURL,
-            friends: [],
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        location.reload();
+        alert('Профиль не настроен. Используйте Telegram: t.me/crisptracker_bot/myapp');
     }
 
     async logout() {
-        if (confirm('Выйти из аккаунта?')) {
-            await auth.signOut();
-            location.reload();
+        const doLogout = () => {
+            if (isTelegramApp) {
+                window.tgApp.close();
+            } else {
+                auth.signOut().then(() => location.reload());
+            }
+        };
+
+        if (window.tgApp) {
+            window.tgApp.showConfirm('Выйти?', (confirmed) => {
+                if (confirmed) doLogout();
+            });
+        } else {
+            if (confirm('Выйти?')) doLogout();
         }
     }
 }
@@ -304,8 +342,6 @@ class CrispTrackerApp {
 
     initUI() {
         document.getElementById('headerAvatar').src = this.profile.photoURL;
-
-        // Main buttons
         document.getElementById('addBtn').onclick = () => this.openAddModal();
         document.getElementById('closeModal').onclick = () => this.closeAddModal();
         document.getElementById('profileBtn').onclick = () => this.openEditProfile();
@@ -315,12 +351,10 @@ class CrispTrackerApp {
         document.getElementById('manageBrandsBtn').onclick = () => this.openManageBrands();
         document.getElementById('closeBrandsModal').onclick = () => this.closeManageBrands();
 
-        // Friends
         document.getElementById('addFriendBtn').onclick = () => this.openAddFriend();
         document.getElementById('closeAddFriendModal').onclick = () => this.closeAddFriend();
         document.getElementById('searchFriendBtn').onclick = () => this.searchFriend();
 
-        // Edit profile
         document.getElementById('cancelEditBtn').onclick = () => this.closeEditProfile();
         document.getElementById('saveEditProfileBtn').onclick = () => this.saveEditProfile();
         document.getElementById('editChangePhotoBtn').onclick = () => document.getElementById('editPhotoInput').click();
@@ -335,7 +369,6 @@ class CrispTrackerApp {
             }
         };
 
-        // Tabs
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.onclick = () => this.switchTab(btn.dataset.tab);
         });
@@ -344,14 +377,11 @@ class CrispTrackerApp {
             btn.onclick = () => this.switchPresetTab(btn.dataset.tab);
         });
 
-        // Date navigation
         this.initDateNavigation();
 
-        // Edit brand
         document.getElementById('cancelEditBrand').onclick = () => this.closeEditBrand();
         document.getElementById('saveEditBrand').onclick = () => this.saveEditedBrand();
 
-        // Add preset buttons
         document.getElementById('addChipsPreset').onclick = () => this.openAddPreset('chips');
         document.getElementById('addCroutonsPreset').onclick = () => this.openAddPreset('croutons');
 
@@ -359,7 +389,6 @@ class CrispTrackerApp {
     }
 
     initDateNavigation() {
-        // My Chart
         document.getElementById('myChartMonth').value = currentMonths.myChart;
         document.getElementById('myChartMonth').onchange = (e) => {
             currentMonths.myChart = e.target.value;
@@ -376,7 +405,6 @@ class CrispTrackerApp {
             this.renderMyChart();
         };
 
-        // Comparison Chart
         document.getElementById('compChartMonth').value = currentMonths.compChart;
         document.getElementById('compChartMonth').onchange = (e) => {
             currentMonths.compChart = e.target.value;
@@ -392,8 +420,6 @@ class CrispTrackerApp {
             document.getElementById('compChartMonth').value = currentMonths.compChart;
             this.renderComparisonChart();
         };
-
-        // History
         document.getElementById('historyMonth').value = currentMonths.history;
         document.getElementById('historyMonth').onchange = (e) => {
             currentMonths.history = e.target.value;
@@ -467,7 +493,7 @@ class CrispTrackerApp {
         const medals = ['🥇', '🥈', '🥉'];
 
         document.getElementById('topUsers').innerHTML = topUsers.map((user, index) => {
-            const medal = index < 3 ? medals[index] : `${index + 1}.`;
+            const medal = index < 3 ? medals[index] : ${index + 1}.;
             const isMe = user.userId === this.user.uid;
 
             return `
@@ -499,18 +525,13 @@ class CrispTrackerApp {
         );
 
         const validFriends = friendsData.filter(f => f !== null);
-
         document.getElementById('friendsList').innerHTML = validFriends.map(friend => `
             <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                 <img src="${friend.photoURL}" class="w-8 h-8 rounded-full object-cover">
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-text truncate">${friend.username}</p>
                 </div>
-                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">✕</button>
             </div>
         `).join('');
     }
@@ -556,11 +577,7 @@ class CrispTrackerApp {
                             <p class="text-xs text-gray-500">${formatted}</p>
                         </div>
                     </div>
-                    <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>
+                    <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2">🗑</button>
                 </div>
             `;
         }).join('');
@@ -599,7 +616,6 @@ class CrispTrackerApp {
 
         const ctx = document.getElementById('myChart');
         if (this.charts.my) this.charts.my.destroy();
-
         this.charts.my = new Chart(ctx, {
             type: 'line',
             data: {
@@ -719,8 +735,7 @@ class CrispTrackerApp {
     // ==========================================
     // MANAGE BRANDS
     // ==========================================
-
-    openManageBrands() {
+openManageBrands() {
         document.getElementById('manageBrandsModal').classList.remove('hidden');
         this.renderPresets('chips');
     }
@@ -767,18 +782,8 @@ class CrispTrackerApp {
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary hover:text-orange-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                            </button>
-                            ${isCustom ? `
-                                <button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 hover:text-red-600">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </button>
-                            ` : ''}
+                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary hover:text-orange-600">✏️</button>
+                            ${isCustom ? <button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 hover:text-red-600">🗑</button> : ''}
                         </div>
                     </div>
                 </div>
@@ -819,10 +824,9 @@ class CrispTrackerApp {
         const flavorsText = document.getElementById('editBrandFlavors').value.trim();
 
         if (!name || !flavorsText) {
-            alert('Заполните все поля');
+            this.showAlert('Заполните все поля');
             return;
         }
-
         const flavors = {};
         flavorsText.split(',').forEach((flavor, index) => {
             const trimmed = flavor.trim();
@@ -834,7 +838,7 @@ class CrispTrackerApp {
             }
         });
 
-        const brandKey = this.editingBrandKey || `custom_${Date.now()}`;
+        const brandKey = this.editingBrandKey || custom_${Date.now()};
         
         if (!this.customBrands[this.editingBrandCategory]) {
             this.customBrands[this.editingBrandCategory] = {};
@@ -858,18 +862,26 @@ class CrispTrackerApp {
     }
 
     async deleteBrand(category, brandKey) {
-        if (!confirm('Удалить этот бренд?')) return;
+        const doDelete = () => {
+            delete this.customBrands[category][brandKey];
 
-        delete this.customBrands[category][brandKey];
+            db.collection('customBrands').doc(this.user.uid).set({
+                brands: this.customBrands
+            }).then(() => {
+                this.renderPresets(category);
+                this.renderChipsBrands();
+                this.renderCroutonsBrands();
+                this.showToast('🗑️ Удалено');
+            });
+        };
 
-        await db.collection('customBrands').doc(this.user.uid).set({
-            brands: this.customBrands
-        });
-
-        this.renderPresets(category);
-        this.renderChipsBrands();
-        this.renderCroutonsBrands();
-        this.showToast('🗑️ Удалено');
+        if (window.tgApp) {
+            window.tgApp.showConfirm('Удалить этот бренд?', (confirmed) => {
+                if (confirmed) doDelete();
+            });
+        } else {
+            if (confirm('Удалить этот бренд?')) doDelete();
+        }
     }
 
     // ==========================================
@@ -921,7 +933,6 @@ class CrispTrackerApp {
             resultDiv.innerHTML = '<p class="text-xs text-red-500">Уже друг</p>';
             return;
         }
-
         resultDiv.innerHTML = `
             <div class="border-2 border-primary rounded-xl p-3 bg-yellow-50">
                 <div class="flex items-center gap-2 mb-2">
@@ -952,14 +963,22 @@ class CrispTrackerApp {
     }
 
     async removeFriend(friendId) {
-        if (!confirm('Удалить?')) return;
+        const doRemove = () => {
+            const friends = (this.profile.friends || []).filter(id => id !== friendId);
+            db.collection('users').doc(this.user.uid).update({ friends }).then(() => {
+                this.profile.friends = friends;
+                this.loadData();
+                this.showToast('🗑️ Удалён');
+            });
+        };
 
-        const friends = (this.profile.friends || []).filter(id => id !== friendId);
-        await db.collection('users').doc(this.user.uid).update({ friends });
-
-        this.profile.friends = friends;
-        this.loadData();
-        this.showToast('🗑️ Удалён');
+        if (window.tgApp) {
+            window.tgApp.showConfirm('Удалить из друзей?', (confirmed) => {
+                if (confirmed) doRemove();
+            });
+        } else {
+            if (confirm('Удалить?')) doRemove();
+        }
     }
 
     // ==========================================
@@ -981,7 +1000,7 @@ class CrispTrackerApp {
         const username = document.getElementById('editUsernameInput').value.trim().toLowerCase();
 
         if (!username || !/^[a-z0-9_]+$/.test(username)) {
-            alert('Ник: латиница, цифры, _');
+            this.showAlert('Ник: латиница, цифры, _');
             return;
         }
 
@@ -991,7 +1010,7 @@ class CrispTrackerApp {
                 .get();
 
             if (!usernameQuery.empty) {
-                alert('Ник занят');
+                this.showAlert('Ник занят');
                 return;
             }
         }
@@ -1017,8 +1036,7 @@ class CrispTrackerApp {
     // ==========================================
     // ADD SNACK
     // ==========================================
-
-    openAddModal() {
+openAddModal() {
         currentSelection = { category: null, brand: null, flavor: null, size: null };
         document.getElementById('addModal').classList.remove('hidden');
         document.getElementById('customGrams').value = '';
@@ -1101,7 +1119,6 @@ class CrispTrackerApp {
         currentSelection.brand = brandKey;
         currentSelection.flavor = null;
         currentSelection.size = null;
-
         const brands = this.getAllBrands(category);
         const brand = brands[brandKey];
         const flavorsContainer = document.getElementById(category + 'Flavors');
@@ -1146,7 +1163,7 @@ class CrispTrackerApp {
     updateSummary() {
         const { category, brand, flavor, size } = currentSelection;
 
-        if (!category || !brand || !flavor) {
+        if (!category  !brand  !flavor) {
             document.getElementById('selectionSummary').classList.add('hidden');
             return;
         }
@@ -1154,10 +1171,10 @@ class CrispTrackerApp {
         const brands = this.getAllBrands(category);
         const brandData = brands[brand];
         const flavorData = brandData.flavors[flavor];
-        const sizeText = size ? ` • ${size}г` : '';
+        const sizeText = size ?  • ${size}г : '';
 
         document.getElementById('summaryText').textContent = 
-            `${brandData.emoji} ${brandData.name} ${flavorData.emoji} ${flavorData.name}${sizeText}`;
+            ${brandData.emoji} ${brandData.name} ${flavorData.emoji} ${flavorData.name}${sizeText};
         document.getElementById('selectionSummary').classList.remove('hidden');
     }
 
@@ -1166,12 +1183,12 @@ class CrispTrackerApp {
         const dateTime = document.getElementById('dateTimeInput').value;
 
         if (!grams || grams <= 0) {
-            alert('Введите граммы');
+            this.showAlert('Введите граммы');
             return;
         }
 
         if (!currentSelection.brand || !currentSelection.flavor) {
-            alert('Выберите снек');
+            this.showAlert('Выберите снек');
             return;
         }
 
@@ -1187,32 +1204,52 @@ class CrispTrackerApp {
             brand: currentSelection.brand,
             flavor: currentSelection.flavor,
             grams: grams,
-            name: `${brandData.name} ${flavorData.name}`,
+            name: ${brandData.name} ${flavorData.name},
             emoji: brandData.emoji,
             date: dateTime.split('T')[0],
             timestamp: firebase.firestore.Timestamp.fromDate(new Date(dateTime))
         };
-
-        try {
+    try {
             await db.collection('entries').add(entry);
             this.closeAddModal();
             await this.loadData();
             this.showToast(`✅ ${grams}г добавлено!`);
         } catch (error) {
             console.error('Error:', error);
-            alert('Ошибка: ' + error.message);
+            this.showAlert('Ошибка: ' + error.message);
         }
     }
 
     async deleteEntry(id) {
-        if (confirm('Удалить?')) {
-            await db.collection('entries').doc(id).delete();
-            this.loadData();
-            this.showToast('🗑️ Удалено');
+        const doDelete = () => {
+            db.collection('entries').doc(id).delete().then(() => {
+                this.loadData();
+                this.showToast('🗑️ Удалено');
+            });
+        };
+
+        if (window.tgApp) {
+            window.tgApp.showConfirm('Удалить?', (confirmed) => {
+                if (confirmed) doDelete();
+            });
+        } else {
+            if (confirm('Удалить?')) doDelete();
+        }
+    }
+
+    showAlert(message) {
+        if (window.tgApp) {
+            window.tgApp.showAlert(message);
+        } else {
+            alert(message);
         }
     }
 
     showToast(message) {
+        if (window.tgApp) {
+            window.tgApp.hapticFeedback('light');
+        }
+        
         const toast = document.createElement('div');
         toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-50 text-sm';
         toast.textContent = message;
