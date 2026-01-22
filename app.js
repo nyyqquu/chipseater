@@ -28,16 +28,31 @@ const QUOTES = [
 let isTelegramApp = false;
 let telegramUser = null;
 
-// Check after scripts load
-setTimeout(() => {
-    if (window.tgApp && window.tgApp.isAvailable()) {
-        isTelegramApp = true;
-        telegramUser = window.tgApp.getUser();
-        console.log('✅ Telegram mode activated:', telegramUser);
-    } else {
-        console.log('❌ Not in Telegram, using Firebase auth');
+// Don't wait, check immediately
+if (typeof window !== 'undefined') {
+    // Initialize check
+    function checkTelegram() {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user) {
+            isTelegramApp = true;
+            const user = window.Telegram.WebApp.initDataUnsafe.user;
+            telegramUser = {
+                id: user.id.toString(),
+                username: user.username || user.first_name.toLowerCase().replace(/\s/g, '_'),
+                firstName: user.first_name,
+                lastName: user.last_name || '',
+                photoURL: user.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name)}&background=FF9900&color=fff`,
+                languageCode: user.language_code || 'ru'
+            };
+            console.log('✅ Telegram detected:', telegramUser.username);
+        } else {
+            console.log('❌ Not in Telegram');
+        }
     }
-}, 100);
+    
+    // Try immediately and after delay
+    checkTelegram();
+    setTimeout(checkTelegram, 500);
+}
 
 // ==========================================
 // SNACK DATABASE (Default)
@@ -179,23 +194,32 @@ class AuthManager {
     }
 
     initAuthListener() {
-        // Wait for Telegram to initialize
+    console.log('Auth listener started');
+    console.log('Is Telegram?', isTelegramApp);
+    console.log('Telegram user:', telegramUser);
+    
+    // Telegram auth
+    if (isTelegramApp && telegramUser) {
+        console.log('🔵 Using Telegram auth for:', telegramUser.username);
         setTimeout(() => {
-            if (isTelegramApp && telegramUser) {
-                console.log('🔵 Using Telegram auth');
-                this.handleTelegramLogin(telegramUser);
-            } else {
-                console.log('🟢 Using Firebase auth');
-                auth.onAuthStateChanged(user => {
-                    if (user) {
-                        this.handleFirebaseLogin(user);
-                    } else {
-                        this.showFirebaseLogin();
-                    }
-                });
-            }
-        }, 200);
+            this.handleTelegramLogin(telegramUser);
+        }, 100);
+        return;
     }
+    
+    // Firebase auth (web)
+    console.log('🟢 Using Firebase auth');
+    setTimeout(() => {
+        auth.onAuthStateChanged(user => {
+            console.log('Firebase auth state:', user ? user.uid : 'no user');
+            if (user) {
+                this.handleFirebaseLogin(user);
+            } else {
+                this.showFirebaseLogin();
+            }
+        });
+    }, 100);
+}
 
     async handleTelegramLogin(tgUser) {
         console.log('Telegram login for:', tgUser.username);
