@@ -1,14 +1,22 @@
 // ==========================================
-// QUOTES DATABASE
+// QUOTES
 // ==========================================
 
 const QUOTES = [
-    "Чипсы — это не еда, это способ жизни.",
-    "Почему чипсы такие вкусные? Потому что они знают, что их съедят.",
     "Я не ленивый, я просто в режиме 'чипсовой экономии'.",
     "Чипсы — единственная валюта, которую я признаю.",
     "Диета? Я на диете из чипсов.",
+    "Чипсы не решают проблемы, но шоколад тоже.",
+    "Если чипсы — зло, то я злодей.",
+    "Чипсы — это овощи, просто очень обработанные.",
+    "Я считаю калории... в пачках чипсов.",
+    "Чипсы — мой духовный наставник.",
     "Открыл пачку чипсов «на попробовать». Пачка закончилась.",
+    "Чипсы и я — это серьёзные отношения.",
+    "Я не зависим от чипсов, я просто очень их люблю.",
+    "Чипсы — это хрустящее счастье.",
+    "Почему делиться чипсами? Это же не коммунизм!",
+    "Чипсы — мой антидепрессант без рецепта.",
     "Чипсы и я — это серьёзные отношения."
 ];
 
@@ -18,6 +26,8 @@ const QUOTES = [
 
 let isTelegramApp = false;
 let telegramUser = null;
+let currentUser = null;
+let currentSelection = { category: null, brand: null, flavor: null, size: null };
 
 function initTelegram() {
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
@@ -65,15 +75,14 @@ const DEFAULT_SNACKS = {
             }
         },
         sizes: [
-            { grams: 40, label: "Мини", emoji: "📦" },
-            { grams: 90, label: "Средняя", emoji: "📦📦" },
-            { grams: 150, label: "Большая", emoji: "📦📦📦" }
+            { grams: 50, label: "Мини", emoji: "📦" },
+            { grams: 150, label: "Большая", emoji: "📦📦" }
         ]
     },
     croutons: {
         brands: {
-            three_crusts: {
-                name: "Три корочки",
+            krutzel: {
+                name: "Krützel",
                 emoji: "🍞",
                 flavors: {
                     garlic: { name: "Чеснок", emoji: "🧄" },
@@ -89,25 +98,7 @@ const DEFAULT_SNACKS = {
 };
 
 // ==========================================
-// GLOBAL STATE
-// ==========================================
-
-let currentUser = null;
-let currentSelection = {
-    category: null,
-    brand: null,
-    flavor: null,
-    size: null
-};
-
-let currentMonths = {
-    myChart: null,
-    compChart: null,
-    history: null
-};
-
-// ==========================================
-// UTILS
+// HELPERS
 // ==========================================
 
 function showRandomQuote() {
@@ -124,6 +115,7 @@ function formatYearMonth(date) {
 function getCurrentYearMonth() {
     return formatYearMonth(new Date());
 }
+
 function changeMonth(currentMonth, offset) {
     const parts = currentMonth.split('-');
     const year = parseInt(parts[0]);
@@ -158,25 +150,26 @@ class AuthManager {
     }
 
     async handleTelegramLogin(tgUser) {
-        console.log('Telegram login:', tgUser.username);
-        
-        const userId = 'tg_' + tgUser.id;
-        currentUser = { uid: userId };
-
         try {
+            console.log('Telegram login:', tgUser.username);
+
+            const userId = 'tg_' + tgUser.id;
+            currentUser = { uid: userId };
+
             const profileDoc = await db.collection('users').doc(userId).get();
 
             if (!profileDoc.exists) {
                 await db.collection('users').doc(userId).set({
                     username: tgUser.username,
                     firstName: tgUser.firstName,
+                    lastName: tgUser.lastName,
                     email: 'tg' + tgUser.id + '@telegram.user',
                     photoURL: tgUser.photoURL,
                     telegramId: tgUser.id,
                     friends: [],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
+
                 const newDoc = await db.collection('users').doc(userId).get();
                 document.getElementById('loginScreen').style.display = 'none';
                 window.app = new CrispTrackerApp({ uid: userId }, newDoc.data());
@@ -203,7 +196,7 @@ class AuthManager {
             'Открыть в Telegram' +
             '</a>' +
             '</div>';
-        
+
         document.getElementById('loginScreen').innerHTML = loginHTML;
         document.getElementById('loginScreen').style.display = 'flex';
     }
@@ -217,19 +210,12 @@ class CrispTrackerApp {
     constructor(user, profile) {
         this.user = user;
         this.profile = profile;
-        this.charts = {};
-        this.customBrands = { chips: {}, croutons: {} };
-        
-        currentMonths = {
-            myChart: getCurrentYearMonth(),
-            compChart: getCurrentYearMonth(),
-            history: getCurrentYearMonth()
-        };
-        
+
         console.log('App initialized for:', profile.username);
         this.initUI();
         this.loadData();
     }
+
     initUI() {
         const self = this;
         document.getElementById('headerAvatar').src = this.profile.photoURL;
@@ -239,7 +225,6 @@ class CrispTrackerApp {
         document.getElementById('newQuoteBtn').onclick = showRandomQuote;
         
         showRandomQuote();
-        this.renderChipsBrands();
     }
 
     async loadData() {
@@ -249,7 +234,7 @@ class CrispTrackerApp {
     async loadHistory() {
         const historyHTML = '<p class="text-sm text-gray-400 text-center py-4">Загрузка...</p>';
         document.getElementById('historyList').innerHTML = historyHTML;
-        
+
         try {
             const snapshot = await db.collection('entries')
                 .where('userId', '==', this.user.uid)
@@ -283,7 +268,10 @@ class CrispTrackerApp {
     }
 
     openAddModal() {
+        currentSelection = { category: null, brand: null, flavor: null, size: null };
         document.getElementById('addModal').classList.remove('hidden');
+        document.getElementById('customGrams').value = '';
+        this.renderChipsBrands();
     }
 
     closeAddModal() {
@@ -293,7 +281,7 @@ class CrispTrackerApp {
     renderChipsBrands() {
         const container = document.getElementById('chipsBrands');
         const brands = DEFAULT_SNACKS.chips.brands;
-        
+
         let html = '';
         for (const key in brands) {
             const brand = brands[key];
@@ -302,13 +290,13 @@ class CrispTrackerApp {
                 '<div class="text-xs font-semibold">' + brand.name + '</div>' +
                 '</button>';
         }
-        
+
         container.innerHTML = html;
     }
 
     async saveSnack() {
         const grams = parseInt(document.getElementById('customGrams').value);
-        
+
         if (!grams || grams <= 0) {
             alert('Введите количество грамм');
             return;
@@ -340,8 +328,8 @@ class CrispTrackerApp {
 // ==========================================
 // INIT
 // ==========================================
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, starting app...');
     new AuthManager();
 });
-`
