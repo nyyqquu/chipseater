@@ -22,10 +22,10 @@ const QUOTES = [
 ];
 
 // ==========================================
-// SNACK DATABASE
+// SNACK DATABASE (Default)
 // ==========================================
 
-const SNACKS_DATABASE = {
+const DEFAULT_SNACKS = {
     chips: {
         brands: {
             lays: {
@@ -122,6 +122,12 @@ let currentSelection = {
     size: null
 };
 
+let currentMonths = {
+    myChart: null,
+    compChart: null,
+    history: null
+};
+
 // ==========================================
 // UTILS
 // ==========================================
@@ -129,6 +135,22 @@ let currentSelection = {
 function showRandomQuote() {
     const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
     document.getElementById('quoteText').textContent = quote;
+}
+
+function formatYearMonth(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+}
+
+function getCurrentYearMonth() {
+    return formatYearMonth(new Date());
+}
+
+function changeMonth(currentMonth, offset) {
+    const [year, month] = currentMonth.split('-').map(Number);
+    const date = new Date(year, month - 1 + offset, 1);
+    return formatYearMonth(date);
 }
 
 // ==========================================
@@ -266,6 +288,15 @@ class CrispTrackerApp {
         this.profile = profile;
         this.charts = {};
         this.customBrands = { chips: {}, croutons: {} };
+        this.editingBrandKey = null;
+        this.editingBrandCategory = null;
+        
+        currentMonths = {
+            myChart: getCurrentYearMonth(),
+            compChart: getCurrentYearMonth(),
+            history: getCurrentYearMonth()
+        };
+        
         this.initUI();
         this.loadCustomBrands();
         this.loadData();
@@ -274,16 +305,20 @@ class CrispTrackerApp {
     initUI() {
         document.getElementById('headerAvatar').src = this.profile.photoURL;
 
-        // Buttons
+        // Main buttons
         document.getElementById('addBtn').onclick = () => this.openAddModal();
         document.getElementById('closeModal').onclick = () => this.closeAddModal();
         document.getElementById('profileBtn').onclick = () => this.openEditProfile();
-        document.getElementById('friendsBtn').onclick = () => this.openFriendsModal();
-        document.getElementById('closeFriendsModal').onclick = () => this.closeFriendsModal();
-        document.getElementById('searchFriendBtn').onclick = () => this.searchFriend();
         document.getElementById('saveSnackBtn').onclick = () => this.saveSnack();
         document.getElementById('newQuoteBtn').onclick = () => showRandomQuote();
         document.getElementById('logoutBtn').onclick = () => new AuthManager().logout();
+        document.getElementById('manageBrandsBtn').onclick = () => this.openManageBrands();
+        document.getElementById('closeBrandsModal').onclick = () => this.closeManageBrands();
+
+        // Friends
+        document.getElementById('addFriendBtn').onclick = () => this.openAddFriend();
+        document.getElementById('closeAddFriendModal').onclick = () => this.closeAddFriend();
+        document.getElementById('searchFriendBtn').onclick = () => this.searchFriend();
 
         // Edit profile
         document.getElementById('cancelEditBtn').onclick = () => this.closeEditProfile();
@@ -300,22 +335,80 @@ class CrispTrackerApp {
             }
         };
 
-        // Add brand
-        document.getElementById('addChipsBrandBtn').onclick = () => this.openAddBrand('chips');
-        document.getElementById('addCroutonsBrandBtn').onclick = () => this.openAddBrand('croutons');
-        document.getElementById('cancelBrandBtn').onclick = () => this.closeAddBrand();
-        document.getElementById('saveBrandBtn').onclick = () => this.saveCustomBrand();
-
         // Tabs
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.onclick = () => this.switchTab(btn.dataset.tab);
         });
 
-        this.renderChipsBrands();
-        this.renderCroutonsBrands();
-        showRandomQuote();
+        document.querySelectorAll('.preset-tab').forEach(btn => {
+            btn.onclick = () => this.switchPresetTab(btn.dataset.tab);
+        });
 
-        lucide.createIcons();
+        // Date navigation
+        this.initDateNavigation();
+
+        // Edit brand
+        document.getElementById('cancelEditBrand').onclick = () => this.closeEditBrand();
+        document.getElementById('saveEditBrand').onclick = () => this.saveEditedBrand();
+
+        // Add preset buttons
+        document.getElementById('addChipsPreset').onclick = () => this.openAddPreset('chips');
+        document.getElementById('addCroutonsPreset').onclick = () => this.openAddPreset('croutons');
+
+        showRandomQuote();
+    }
+
+    initDateNavigation() {
+        // My Chart
+        document.getElementById('myChartMonth').value = currentMonths.myChart;
+        document.getElementById('myChartMonth').onchange = (e) => {
+            currentMonths.myChart = e.target.value;
+            this.renderMyChart();
+        };
+        document.getElementById('myChartPrev').onclick = () => {
+            currentMonths.myChart = changeMonth(currentMonths.myChart, -1);
+            document.getElementById('myChartMonth').value = currentMonths.myChart;
+            this.renderMyChart();
+        };
+        document.getElementById('myChartNext').onclick = () => {
+            currentMonths.myChart = changeMonth(currentMonths.myChart, 1);
+            document.getElementById('myChartMonth').value = currentMonths.myChart;
+            this.renderMyChart();
+        };
+
+        // Comparison Chart
+        document.getElementById('compChartMonth').value = currentMonths.compChart;
+        document.getElementById('compChartMonth').onchange = (e) => {
+            currentMonths.compChart = e.target.value;
+            this.renderComparisonChart();
+        };
+        document.getElementById('compChartPrev').onclick = () => {
+            currentMonths.compChart = changeMonth(currentMonths.compChart, -1);
+            document.getElementById('compChartMonth').value = currentMonths.compChart;
+            this.renderComparisonChart();
+        };
+        document.getElementById('compChartNext').onclick = () => {
+            currentMonths.compChart = changeMonth(currentMonths.compChart, 1);
+            document.getElementById('compChartMonth').value = currentMonths.compChart;
+            this.renderComparisonChart();
+        };
+
+        // History
+        document.getElementById('historyMonth').value = currentMonths.history;
+        document.getElementById('historyMonth').onchange = (e) => {
+            currentMonths.history = e.target.value;
+            this.loadHistory();
+        };
+        document.getElementById('historyPrev').onclick = () => {
+            currentMonths.history = changeMonth(currentMonths.history, -1);
+            document.getElementById('historyMonth').value = currentMonths.history;
+            this.loadHistory();
+        };
+        document.getElementById('historyNext').onclick = () => {
+            currentMonths.history = changeMonth(currentMonths.history, 1);
+            document.getElementById('historyMonth').value = currentMonths.history;
+            this.loadHistory();
+        };
     }
 
     async loadCustomBrands() {
@@ -329,6 +422,7 @@ class CrispTrackerApp {
     async loadData() {
         await Promise.all([
             this.loadTopUsers(),
+            this.loadFriendsList(),
             this.loadHistory(),
             this.renderCharts()
         ]);
@@ -337,11 +431,6 @@ class CrispTrackerApp {
     async loadTopUsers() {
         const friends = this.profile.friends || [];
         const userIds = [this.user.uid, ...friends];
-
-        document.getElementById('friendsBadge').textContent = friends.length;
-        if (friends.length > 0) {
-            document.getElementById('friendsBadge').classList.remove('hidden');
-        }
 
         const monthAgo = new Date();
         monthAgo.setDate(monthAgo.getDate() - 30);
@@ -368,43 +457,81 @@ class CrispTrackerApp {
 
         const topUsers = Object.values(userTotals)
             .sort((a, b) => b.total - a.total)
-            .slice(0, 5);
+            .slice(0, 10);
 
         if (topUsers.length === 0) {
-            document.getElementById('topUsers').innerHTML = '<p class="text-sm text-gray-400 w-full text-center py-4">Добавьте друзей</p>';
+            document.getElementById('topUsers').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Добавьте друзей</p>';
             return;
         }
 
         const medals = ['🥇', '🥈', '🥉'];
 
         document.getElementById('topUsers').innerHTML = topUsers.map((user, index) => {
-            const medal = index < 3 ? medals[index] : '';
+            const medal = index < 3 ? medals[index] : `${index + 1}.`;
             const isMe = user.userId === this.user.uid;
 
             return `
-                <div class="flex-shrink-0 bg-${isMe ? 'yellow-50 border-2 border-primary' : 'gray-50'} rounded-xl p-3 min-w-[140px]">
-                    <div class="flex items-center gap-2 mb-2">
-                        <img src="${user.photoURL}" class="w-10 h-10 rounded-full object-cover">
-                        <span class="text-xl">${medal}</span>
+                <div class="flex items-center gap-3 p-3 rounded-xl ${isMe ? 'bg-yellow-50 border-2 border-primary' : 'bg-gray-50'}">
+                    <span class="text-2xl w-8">${medal}</span>
+                    <img src="${user.photoURL}" class="w-10 h-10 rounded-full object-cover">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-text truncate">${user.username}</p>
                     </div>
-                    <p class="text-sm font-bold text-text truncate">${user.username}</p>
-                    <p class="text-xs text-gray-600">${user.total}г</p>
+                    <p class="text-base font-bold text-primary">${user.total}г</p>
                 </div>
             `;
         }).join('');
     }
 
+    async loadFriendsList() {
+        const friends = this.profile.friends || [];
+
+        if (friends.length === 0) {
+            document.getElementById('friendsList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Нет друзей</p>';
+            return;
+        }
+
+        const friendsData = await Promise.all(
+            friends.map(async (friendId) => {
+                const doc = await db.collection('users').doc(friendId).get();
+                return doc.exists ? { id: friendId, ...doc.data() } : null;
+            })
+        );
+
+        const validFriends = friendsData.filter(f => f !== null);
+
+        document.getElementById('friendsList').innerHTML = validFriends.map(friend => `
+            <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <img src="${friend.photoURL}" class="w-8 h-8 rounded-full object-cover">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-text truncate">${friend.username}</p>
+                </div>
+                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+    }
+
     async loadHistory() {
+        const [year, month] = currentMonths.history.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+
         const snapshot = await db.collection('entries')
             .where('userId', '==', this.user.uid)
-            .orderBy('timestamp', 'desc')
-            .limit(10)
+            .where('date', '>=', startDate.toISOString().split('T')[0])
+            .where('date', '<=', endDate.toISOString().split('T')[0])
             .get();
 
         const entries = [];
         snapshot.forEach(doc => {
             entries.push({ id: doc.id, ...doc.data() });
         });
+
+        entries.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
 
         if (entries.length === 0) {
             document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Записей нет</p>';
@@ -430,13 +557,13 @@ class CrispTrackerApp {
                         </div>
                     </div>
                     <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
                     </button>
                 </div>
             `;
         }).join('');
-
-        lucide.createIcons();
     }
 
     async renderCharts() {
@@ -445,13 +572,15 @@ class CrispTrackerApp {
     }
 
     async renderMyChart() {
+        const [year, month] = currentMonths.myChart.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+
         const days = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = new Date(year, month - 1, i);
             days.push({
                 date: date.toISOString().split('T')[0],
-                label: date.getDate().toString(),
+                label: i.toString(),
                 total: 0
             });
         }
@@ -459,6 +588,7 @@ class CrispTrackerApp {
         const snapshot = await db.collection('entries')
             .where('userId', '==', this.user.uid)
             .where('date', '>=', days[0].date)
+            .where('date', '<=', days[days.length - 1].date)
             .get();
 
         snapshot.forEach(doc => {
@@ -482,8 +612,8 @@ class CrispTrackerApp {
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointRadius: 2,
+                    pointHoverRadius: 5
                 }]
             },
             options: {
@@ -504,13 +634,15 @@ class CrispTrackerApp {
         const friends = this.profile.friends || [];
         const userIds = [this.user.uid, ...friends].slice(0, 5);
 
+        const [year, month] = currentMonths.compChart.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+
         const days = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = new Date(year, month - 1, i);
             days.push({
                 date: date.toISOString().split('T')[0],
-                label: date.getDate().toString(),
+                label: i.toString(),
                 users: {}
             });
         }
@@ -518,6 +650,7 @@ class CrispTrackerApp {
         const snapshot = await db.collection('entries')
             .where('userId', 'in', userIds)
             .where('date', '>=', days[0].date)
+            .where('date', '<=', days[days.length - 1].date)
             .get();
 
         snapshot.forEach(doc => {
@@ -550,7 +683,7 @@ class CrispTrackerApp {
                 borderWidth: 2,
                 fill: false,
                 tension: 0.4,
-                pointRadius: 3
+                pointRadius: 2
             };
         });
 
@@ -584,49 +717,173 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // FRIENDS
+    // MANAGE BRANDS
     // ==========================================
 
-    openFriendsModal() {
-        document.getElementById('friendsModal').classList.remove('hidden');
-        this.loadFriendsList();
+    openManageBrands() {
+        document.getElementById('manageBrandsModal').classList.remove('hidden');
+        this.renderPresets('chips');
     }
 
-    closeFriendsModal() {
-        document.getElementById('friendsModal').classList.add('hidden');
+    closeManageBrands() {
+        document.getElementById('manageBrandsModal').classList.add('hidden');
     }
 
-    async loadFriendsList() {
-        const friends = this.profile.friends || [];
+    switchPresetTab(tab) {
+        document.querySelectorAll('.preset-tab').forEach(btn => {
+            if (btn.dataset.tab === tab) {
+                btn.classList.add('border-primary', 'text-primary');
+                btn.classList.remove('border-transparent', 'text-gray-600');
+            } else {
+                btn.classList.remove('border-primary', 'text-primary');
+                btn.classList.add('border-transparent', 'text-gray-600');
+            }
+        });
 
-        if (friends.length === 0) {
-            document.getElementById('friendsList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Нет друзей</p>';
+        document.querySelectorAll('.preset-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        document.getElementById(tab + 'Presets').classList.remove('hidden');
+
+        this.renderPresets(tab);
+    }
+
+    renderPresets(category) {
+        const allBrands = this.getAllBrands(category);
+        const container = document.getElementById(category + 'PresetsList');
+
+        container.innerHTML = Object.entries(allBrands).map(([key, brand]) => {
+            const isCustom = key.startsWith('custom_');
+            const flavorsText = Object.values(brand.flavors).map(f => f.name).join(', ');
+
+            return `
+                <div class="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">${brand.emoji}</span>
+                            <div>
+                                <p class="font-bold text-text">${brand.name}</p>
+                                <p class="text-xs text-gray-500">${flavorsText}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary hover:text-orange-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            ${isCustom ? `
+                                <button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 hover:text-red-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    openAddPreset(category) {
+        this.editingBrandKey = null;
+        this.editingBrandCategory = category;
+        document.getElementById('editBrandModal').classList.remove('hidden');
+        document.getElementById('editBrandName').value = '';
+        document.getElementById('editBrandEmoji').value = '';
+        document.getElementById('editBrandFlavors').value = '';
+    }
+
+    editBrand(category, brandKey) {
+        this.editingBrandKey = brandKey;
+        this.editingBrandCategory = category;
+
+        const brands = this.getAllBrands(category);
+        const brand = brands[brandKey];
+
+        document.getElementById('editBrandName').value = brand.name;
+        document.getElementById('editBrandEmoji').value = brand.emoji;
+        document.getElementById('editBrandFlavors').value = Object.values(brand.flavors).map(f => f.name).join(', ');
+
+        document.getElementById('editBrandModal').classList.remove('hidden');
+    }
+
+    closeEditBrand() {
+        document.getElementById('editBrandModal').classList.add('hidden');
+    }
+
+    async saveEditedBrand() {
+        const name = document.getElementById('editBrandName').value.trim();
+        const emoji = document.getElementById('editBrandEmoji').value.trim() || '🍟';
+        const flavorsText = document.getElementById('editBrandFlavors').value.trim();
+
+        if (!name || !flavorsText) {
+            alert('Заполните все поля');
             return;
         }
 
-        const friendsData = await Promise.all(
-            friends.map(async (friendId) => {
-                const doc = await db.collection('users').doc(friendId).get();
-                return doc.exists ? { id: friendId, ...doc.data() } : null;
-            })
-        );
+        const flavors = {};
+        flavorsText.split(',').forEach((flavor, index) => {
+            const trimmed = flavor.trim();
+            if (trimmed) {
+                flavors[`flavor_${index}`] = {
+                    name: trimmed,
+                    emoji: '🍽️'
+                };
+            }
+        });
 
-        const validFriends = friendsData.filter(f => f !== null);
+        const brandKey = this.editingBrandKey || `custom_${Date.now()}`;
+        
+        if (!this.customBrands[this.editingBrandCategory]) {
+            this.customBrands[this.editingBrandCategory] = {};
+        }
 
-        document.getElementById('friendsList').innerHTML = validFriends.map(friend => `
-            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-2">
-                <img src="${friend.photoURL}" class="w-12 h-12 rounded-full object-cover">
-                <div class="flex-1 min-w-0">
-                    <p class="font-bold text-text truncate">${friend.username}</p>
-                    <p class="text-xs text-gray-500 truncate">${friend.email}</p>
-                </div>
-                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">
-                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                </button>
-            </div>
-        `).join('');
+        this.customBrands[this.editingBrandCategory][brandKey] = {
+            name: name,
+            emoji: emoji,
+            flavors: flavors
+        };
 
-        lucide.createIcons();
+        await db.collection('customBrands').doc(this.user.uid).set({
+            brands: this.customBrands
+        });
+
+        this.closeEditBrand();
+        this.renderPresets(this.editingBrandCategory);
+        this.renderChipsBrands();
+        this.renderCroutonsBrands();
+        this.showToast('✅ Сохранено!');
+    }
+
+    async deleteBrand(category, brandKey) {
+        if (!confirm('Удалить этот бренд?')) return;
+
+        delete this.customBrands[category][brandKey];
+
+        await db.collection('customBrands').doc(this.user.uid).set({
+            brands: this.customBrands
+        });
+
+        this.renderPresets(category);
+        this.renderChipsBrands();
+        this.renderCroutonsBrands();
+        this.showToast('🗑️ Удалено');
+    }
+
+    // ==========================================
+    // FRIENDS
+    // ==========================================
+
+    openAddFriend() {
+        document.getElementById('addFriendModal').classList.remove('hidden');
+        document.getElementById('friendSearchInput').value = '';
+        document.getElementById('friendSearchResult').innerHTML = '';
+    }
+
+    closeAddFriend() {
+        document.getElementById('addFriendModal').classList.add('hidden');
     }
 
     async searchFriend() {
@@ -690,7 +947,6 @@ class CrispTrackerApp {
         this.profile.friends = friends;
         document.getElementById('friendSearchInput').value = '';
         document.getElementById('friendSearchResult').innerHTML = '';
-        this.loadFriendsList();
         this.loadData();
         this.showToast('✅ Друг добавлен!');
     }
@@ -702,7 +958,6 @@ class CrispTrackerApp {
         await db.collection('users').doc(this.user.uid).update({ friends });
 
         this.profile.friends = friends;
-        this.loadFriendsList();
         this.loadData();
         this.showToast('🗑️ Удалён');
     }
@@ -716,7 +971,6 @@ class CrispTrackerApp {
         document.getElementById('editUsernameInput').value = this.profile.username;
         document.getElementById('editEmailDisplay').value = this.profile.email;
         document.getElementById('editProfilePreview').src = this.profile.photoURL;
-        lucide.createIcons();
     }
 
     closeEditProfile() {
@@ -816,7 +1070,7 @@ class CrispTrackerApp {
     }
 
     getAllBrands(category) {
-        return { ...SNACKS_DATABASE[category].brands, ...this.customBrands[category] };
+        return { ...DEFAULT_SNACKS[category].brands, ...this.customBrands[category] };
     }
 
     renderChipsBrands() {
@@ -870,7 +1124,7 @@ class CrispTrackerApp {
         currentSelection.size = null;
 
         const sizesContainer = document.getElementById(category + 'Sizes');
-        sizesContainer.innerHTML = SNACKS_DATABASE[category].sizes.map(size => `
+        sizesContainer.innerHTML = DEFAULT_SNACKS[category].sizes.map(size => `
             <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectSize(${size.grams})">
                 <div class="text-lg mb-1">${size.emoji}</div>
                 <div class="font-bold text-primary">${size.grams}г</div>
@@ -956,61 +1210,6 @@ class CrispTrackerApp {
             this.loadData();
             this.showToast('🗑️ Удалено');
         }
-    }
-
-    // ==========================================
-    // CUSTOM BRANDS
-    // ==========================================
-
-    openAddBrand(category) {
-        this.currentBrandCategory = category;
-        document.getElementById('addBrandModal').classList.remove('hidden');
-        document.getElementById('newBrandName').value = '';
-        document.getElementById('newBrandEmoji').value = '';
-        document.getElementById('newBrandFlavors').value = '';
-        lucide.createIcons();
-    }
-
-    closeAddBrand() {
-        document.getElementById('addBrandModal').classList.add('hidden');
-    }
-
-    async saveCustomBrand() {
-        const name = document.getElementById('newBrandName').value.trim();
-        const emoji = document.getElementById('newBrandEmoji').value.trim() || '🍟';
-        const flavorsText = document.getElementById('newBrandFlavors').value.trim();
-
-        if (!name || !flavorsText) {
-            alert('Заполните все поля');
-            return;
-        }
-
-        const flavors = {};
-        flavorsText.split(',').forEach((flavor, index) => {
-            const trimmed = flavor.trim();
-            if (trimmed) {
-                flavors[`custom_${index}`] = {
-                    name: trimmed,
-                    emoji: '🍽️'
-                };
-            }
-        });
-
-        const brandKey = `custom_${Date.now()}`;
-        this.customBrands[this.currentBrandCategory][brandKey] = {
-            name: name,
-            emoji: emoji,
-            flavors: flavors
-        };
-
-        await db.collection('customBrands').doc(this.user.uid).set({
-            brands: this.customBrands
-        });
-
-        this.closeAddBrand();
-        this.renderChipsBrands();
-        this.renderCroutonsBrands();
-        this.showToast('✅ Бренд добавлен!');
     }
 
     showToast(message) {
