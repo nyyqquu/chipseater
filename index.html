@@ -38,6 +38,8 @@
         * { -webkit-tap-highlight-color: transparent; }
         body { overscroll-behavior: none; }
         .chart-container { position: relative; height: 200px; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-background">
@@ -63,7 +65,7 @@
                 Войти через Google
             </button>
             
-            <p class="text-center text-gray-400 text-xs mt-4">Для смены аккаунта очистите кеш браузера</p>
+            <p class="text-center text-gray-400 text-xs mt-4">Для смены аккаунта очистите данные браузера</p>
         </div>
     </div>
 
@@ -73,12 +75,10 @@
             <h2 class="text-xl font-bold text-text mb-4 text-center">Настройка профиля</h2>
             
             <div class="mb-4 text-center">
-                <div class="relative inline-block">
-                    <img id="profilePreview" src="" alt="" class="w-20 h-20 rounded-full object-cover border-4 border-primary">
-                    <button type="button" id="changePhotoBtn" class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full">
-                        <i data-lucide="camera" class="w-3 h-3"></i>
-                    </button>
-                </div>
+                <img id="profilePreview" src="" alt="" class="w-20 h-20 rounded-full object-cover border-4 border-primary mx-auto mb-2">
+                <button type="button" id="changePhotoBtn" class="bg-primary text-white px-4 py-2 rounded-lg text-sm">
+                    Изменить фото
+                </button>
                 <input type="file" id="photoInput" accept="image/*" class="hidden">
             </div>
 
@@ -103,7 +103,9 @@
             <h1 class="text-xl font-bold text-text">CrispTracker</h1>
             
             <button type="button" id="friendsBtn" class="relative">
-                <i data-lucide="users" class="w-7 h-7 text-primary"></i>
+                <svg class="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
                 <span id="friendsBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">0</span>
             </button>
         </div>
@@ -114,10 +116,7 @@
         
         <!-- Top Section -->
         <div class="bg-white rounded-2xl shadow-lg p-4 mb-4">
-            <h2 class="text-lg font-bold text-text mb-3 flex items-center gap-2">
-                <i data-lucide="trophy" class="w-5 h-5 text-primary"></i>
-                Топ за месяц
-            </h2>
+            <h2 class="text-lg font-bold text-text mb-3">🏆 Топ за месяц</h2>
             <div id="topUsers" class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 <p class="text-sm text-gray-400 w-full text-center py-4">Загрузка...</p>
             </div>
@@ -125,20 +124,14 @@
 
         <!-- Charts -->
         <div class="bg-white rounded-2xl shadow-lg p-4 mb-4">
-            <h3 class="text-base font-bold text-text mb-3 flex items-center gap-2">
-                <i data-lucide="activity" class="w-5 h-5 text-primary"></i>
-                Мой прогресс
-            </h3>
+            <h3 class="text-base font-bold text-text mb-3">📊 Мой прогресс</h3>
             <div class="chart-container">
                 <canvas id="myChart"></canvas>
             </div>
         </div>
 
         <div class="bg-white rounded-2xl shadow-lg p-4 mb-4">
-            <h3 class="text-base font-bold text-text mb-3 flex items-center gap-2">
-                <i data-lucide="users" class="w-5 h-5 text-secondary"></i>
-                Вы vs друзья
-            </h3>
+            <h3 class="text-base font-bold text-text mb-3">👥 Вы vs друзья</h3>
             <div class="chart-container">
                 <canvas id="comparisonChart"></canvas>
             </div>
@@ -146,23 +139,20 @@
 
         <!-- History -->
         <div class="bg-white rounded-2xl shadow-lg p-4 mb-4">
-            <h3 class="text-base font-bold text-text mb-3 flex items-center gap-2">
-                <i data-lucide="history" class="w-5 h-5 text-primary"></i>
-                История
-            </h3>
+            <h3 class="text-base font-bold text-text mb-3">🕐 История</h3>
             <div id="historyList" class="space-y-2">
                 <p class="text-sm text-gray-400 text-center py-4">Записей нет</p>
             </div>
         </div>
 
-        <!-- Quote of the Day -->
+        <!-- Quote -->
         <div class="bg-gradient-to-r from-primary to-orange-500 rounded-2xl shadow-lg p-4 text-white">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-base font-bold flex items-center gap-2">
-                    🍟 Анекдот про чипсы
-                </h3>
+                <h3 class="text-base font-bold">🍟 Анекдот про чипсы</h3>
                 <button type="button" id="newQuoteBtn" class="bg-white/20 hover:bg-white/30 rounded-full p-2 transition">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
                 </button>
             </div>
             <p id="quoteText" class="text-sm italic leading-relaxed"></p>
@@ -171,7 +161,9 @@
 
     <!-- FAB -->
     <button type="button" id="addBtn" class="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-orange-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-95 transition">
-        <i data-lucide="plus" class="w-7 h-7"></i>
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
     </button>
 
     <!-- Friends Modal -->
@@ -179,9 +171,7 @@
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[80vh] flex flex-col">
             <div class="p-4 border-b flex items-center justify-between">
                 <h2 class="text-xl font-bold text-text">Друзья</h2>
-                <button type="button" id="closeFriendsModal" class="text-gray-400">
-                    <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
+                <button type="button" id="closeFriendsModal" class="text-gray-400">✕</button>
             </div>
             
             <div class="p-4 border-b">
@@ -204,12 +194,10 @@
             <h2 class="text-xl font-bold text-text mb-4 text-center">Профиль</h2>
             
             <div class="mb-4 text-center">
-                <div class="relative inline-block">
-                    <img id="editProfilePreview" src="" alt="" class="w-20 h-20 rounded-full object-cover border-4 border-primary">
-                    <button type="button" id="editChangePhotoBtn" class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full">
-                        <i data-lucide="camera" class="w-3 h-3"></i>
-                    </button>
-                </div>
+                <img id="editProfilePreview" src="" alt="" class="w-20 h-20 rounded-full object-cover border-4 border-primary mx-auto mb-2">
+                <button type="button" id="editChangePhotoBtn" class="bg-primary text-white px-4 py-2 rounded-lg text-sm">
+                    Изменить фото
+                </button>
                 <input type="file" id="editPhotoInput" accept="image/*" class="hidden">
             </div>
 
@@ -226,7 +214,7 @@
             </div>
             
             <button type="button" id="logoutBtn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-xl text-sm">
-                Выйти из аккаунта
+                Выйти
             </button>
         </div>
     </div>
@@ -235,16 +223,9 @@
     <div id="addModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg sm:max-h-[90vh] overflow-y-auto">
             
-            <div class="sticky top-0 bg-white border-b p-4 rounded-t-3xl z-10">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-text flex items-center gap-2">
-                        <i data-lucide="cookie" class="w-6 h-6 text-primary"></i>
-                        Добавить снек
-                    </h2>
-                    <button type="button" id="closeModal" class="text-gray-400">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
+            <div class="sticky top-0 bg-white border-b p-4 rounded-t-3xl z-10 flex items-center justify-between">
+                <h2 class="text-lg font-bold text-text">🍪 Добавить снек</h2>
+                <button type="button" id="closeModal" class="text-gray-400">✕</button>
             </div>
 
             <div class="p-4">
@@ -261,10 +242,7 @@
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label class="text-sm font-semibold text-text">Марка:</label>
-                            <button type="button" id="addChipsBrandBtn" class="text-primary text-xs flex items-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i>
-                                Своя
-                            </button>
+                            <button type="button" id="addChipsBrandBtn" class="text-primary text-xs">+ Своя</button>
                         </div>
                         <div class="grid grid-cols-3 gap-2" id="chipsBrands"></div>
                     </div>
@@ -282,10 +260,7 @@
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label class="text-sm font-semibold text-text">Марка:</label>
-                            <button type="button" id="addCroutonsBrandBtn" class="text-primary text-xs flex items-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i>
-                                Своя
-                            </button>
+                            <button type="button" id="addCroutonsBrandBtn" class="text-primary text-xs">+ Своя</button>
                         </div>
                         <div class="grid grid-cols-3 gap-2" id="croutonsBrands"></div>
                     </div>
@@ -322,4 +297,40 @@
     </div>
 
     <!-- Add Brand Modal -->
-    <div id="ad
+    <div id="addBrandModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
+            <h2 class="text-lg font-bold text-text mb-4">Новый бренд</h2>
+            
+            <input type="text" id="newBrandName" placeholder="Название" class="w-full px-4 py-2 mb-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none">
+            <input type="text" id="newBrandEmoji" placeholder="🍟" maxlength="2" class="w-full px-4 py-2 mb-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none">
+            <textarea id="newBrandFlavors" placeholder="Сыр, Бекон, Паприка" rows="2" class="w-full px-4 py-2 mb-4 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none"></textarea>
+
+            <div class="flex gap-2">
+                <button type="button" id="cancelBrandBtn" class="flex-1 bg-gray-300 hover:bg-gray-400 text-text font-bold py-2 rounded-xl">
+                    Отмена
+                </button>
+                <button type="button" id="saveBrandBtn" class="flex-1 bg-primary hover:bg-orange-600 text-white font-bold py-2 rounded-xl">
+                    Добавить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCaCR-s4JJB_T1L7nT-vuo0opGAsu8cPqM",
+      authDomain: "crisptracker-f5241.firebaseapp.com",
+      projectId: "crisptracker-f5241",
+      storageBucket: "crisptracker-f5241.firebasestorage.app",
+      messagingSenderId: "288674947284",
+      appId: "1:288674947284:web:1c81a0e365dcd09a2b1b41"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+    </script>
+
+    <script src="app.js"></script>
+</body>
+</html>
