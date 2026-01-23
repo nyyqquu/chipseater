@@ -287,9 +287,25 @@ class CrispTrackerApp {
             history: getCurrentYearMonth()
         };
         
+        // Apply theme colors to charts
+        this.updateChartColors();
+        
         this.initUI();
         this.loadCustomBrands();
         this.loadData();
+    }
+
+    updateChartColors() {
+        const isDark = window.tgApp?.isDark();
+        
+        this.chartColors = {
+            grid: isDark ? '#38383A' : '#E5E5E5',
+            text: isDark ? '#98989E' : '#666666',
+            primary: isDark ? '#0A84FF' : '#FF9900',
+            datasets: isDark 
+                ? ['#0A84FF', '#5E5CE6', '#30D158', '#FF9F0A', '#FF453A']
+                : ['#FF9900', '#3366FF', '#00CC66', '#F59E0B', '#EF4444']
+        };
     }
 
     initUI() {
@@ -503,7 +519,7 @@ class CrispTrackerApp {
             .sort((a, b) => b.total - a.total);
 
         if (topUsers.length === 0) {
-            document.getElementById('topUsers').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Добавьте друзей</p>';
+            document.getElementById('topUsers').innerHTML = '<p class="text-xs text-tertiary text-center py-2">Добавьте друзей</p>';
             return;
         }
 
@@ -514,13 +530,13 @@ class CrispTrackerApp {
             const isMe = user.userId === this.user.uid;
 
             return `
-                <div class="top-item flex items-center gap-2 p-2 rounded-lg ${isMe ? 'bg-yellow-50 border border-primary' : 'bg-gray-50'}">
+                <div class="top-item flex items-center gap-2 p-2 rounded-lg ${isMe ? 'highlight border-2' : ''}">
                     <span class="text-lg w-6">${medal}</span>
                     <img src="${user.photoURL}" class="w-8 h-8 rounded-full object-cover">
                     <div class="flex-1 min-w-0">
-                        <p class="text-xs font-bold text-text truncate">${user.username}</p>
+                        <p class="text-xs font-bold text-main truncate">${user.username}</p>
                     </div>
-                    <p class="text-sm font-bold text-primary">${user.total}г</p>
+                    <p class="text-sm font-bold accent-text">${user.total}г</p>
                 </div>
             `;
         }).join('');
@@ -537,7 +553,7 @@ class CrispTrackerApp {
         const friends = this.profile.friends || [];
 
         if (friends.length === 0) {
-            document.getElementById('friendsList').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Нет друзей</p>';
+            document.getElementById('friendsList').innerHTML = '<p class="text-xs text-tertiary text-center py-2">Нет друзей</p>';
             return;
         }
 
@@ -551,17 +567,17 @@ class CrispTrackerApp {
         const validFriends = friendsData.filter(f => f !== null);
 
         document.getElementById('friendsList').innerHTML = validFriends.map(friend => `
-            <div class="flex items-center gap-1.5 p-1.5 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-1.5 p-1.5 rounded-lg" style="background-color: var(--bg-tertiary)">
                 <img src="${friend.photoURL}" class="w-6 h-6 rounded-full object-cover">
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-text truncate">${friend.username}</p>
+                    <p class="text-xs font-semibold text-main truncate">${friend.username}</p>
                 </div>
                 <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 text-sm">✕</button>
             </div>
         `).join('');
 
         if (friends.length > 10) {
-            document.getElementById('friendsList').innerHTML += '<p class="text-xs text-gray-500 text-center mt-1">+ещё ' + (friends.length - 10) + '</p>';
+            document.getElementById('friendsList').innerHTML += '<p class="text-xs text-secondary text-center mt-1">+ещё ' + (friends.length - 10) + '</p>';
         }
     }
 
@@ -584,7 +600,7 @@ class CrispTrackerApp {
         entries.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
 
         if (entries.length === 0) {
-            document.getElementById('historyList').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Записей нет</p>';
+            document.getElementById('historyList').innerHTML = '<p class="text-xs text-tertiary text-center py-2">Записей нет</p>';
             return;
         }
 
@@ -598,15 +614,15 @@ class CrispTrackerApp {
             });
 
             return `
-                <div class="flex items-center justify-between p-2 rounded-lg border border-gray-200 hover:bg-yellow-50 transition">
+                <div class="flex items-center justify-between p-2 rounded-lg border border-main hover:bg-tertiary transition" style="background-color: var(--bg-secondary)">
                     <div class="flex items-center gap-2 min-w-0 flex-1">
                         <div class="text-xl">${entry.emoji || '🍟'}</div>
                         <div class="min-w-0 flex-1">
-                            <p class="text-xs font-semibold text-text truncate">${entry.grams}г • ${entry.name}</p>
-                            <p class="text-xs text-gray-500">${formatted}</p>
+                            <p class="text-xs font-semibold text-main truncate">${entry.grams}г • ${entry.name}</p>
+                            <p class="text-xs text-secondary">${formatted}</p>
                         </div>
                     </div>
-                    <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2 text-lg">🗑</button>
+                    <button onclick="app.deleteEntry('${entry.id}')" class="text-tertiary hover:text-red-500 ml-2 text-lg">🗑</button>
                 </div>
             `;
         }).join('');
@@ -653,8 +669,8 @@ class CrispTrackerApp {
                 datasets: [{
                     label: 'Грамм',
                     data: days.map(d => d.total),
-                    borderColor: '#FF9900',
-                    backgroundColor: 'rgba(255, 153, 0, 0.1)',
+                    borderColor: this.chartColors.primary,
+                    backgroundColor: this.chartColors.primary + '20',
                     borderWidth: 2,
                     fill: true,
                     tension: 0.4,
@@ -665,19 +681,29 @@ class CrispTrackerApp {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { display: false }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: this.chartColors.grid
+                        },
                         ticks: { 
                             callback: v => v + 'г',
-                            font: { size: 10 }
+                            font: { size: 10 },
+                            color: this.chartColors.text
                         }
                     },
                     x: {
+                        grid: {
+                            color: this.chartColors.grid
+                        },
                         ticks: {
                             font: { size: 10 },
-                            maxTicksLimit: 10
+                            maxTicksLimit: 10,
+                            color: this.chartColors.text
                         }
                     }
                 }
@@ -727,14 +753,13 @@ class CrispTrackerApp {
             Object.keys(day.users).forEach(userId => allUsers.add(userId));
         });
 
-        const colors = ['#FF9900', '#3366FF', '#00CC66', '#F59E0B', '#EF4444'];
         const datasets = Array.from(allUsers).map((userId, index) => {
             const username = days.find(d => d.users[userId])?.users[userId]?.username || 'User';
             return {
                 label: username,
                 data: days.map(d => d.users[userId]?.total || 0),
-                borderColor: colors[index % colors.length],
-                backgroundColor: colors[index % colors.length] + '20',
+                borderColor: this.chartColors.datasets[index % this.chartColors.datasets.length],
+                backgroundColor: this.chartColors.datasets[index % this.chartColors.datasets.length] + '20',
                 borderWidth: 2,
                 fill: false,
                 tension: 0.4,
@@ -761,22 +786,31 @@ class CrispTrackerApp {
                         labels: { 
                             boxWidth: 10, 
                             font: { size: 9 },
-                            padding: 8
+                            padding: 8,
+                            color: this.chartColors.text
                         }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: this.chartColors.grid
+                        },
                         ticks: { 
                             callback: v => v + 'г',
-                            font: { size: 10 }
+                            font: { size: 10 },
+                            color: this.chartColors.text
                         }
                     },
                     x: {
+                        grid: {
+                            color: this.chartColors.grid
+                        },
                         ticks: {
                             font: { size: 10 },
-                            maxTicksLimit: 10
+                            maxTicksLimit: 10,
+                            color: this.chartColors.text
                         }
                     }
                 }
@@ -785,7 +819,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // MANAGE BRANDS (продолжение в след. сообщении)
+    // MANAGE BRANDS
     // ==========================================
 
     openManageBrands() {
@@ -800,11 +834,13 @@ class CrispTrackerApp {
     switchPresetTab(tab) {
         document.querySelectorAll('.preset-tab').forEach(btn => {
             if (btn.dataset.tab === tab) {
-                btn.classList.add('border-primary', 'text-primary');
-                btn.classList.remove('border-transparent', 'text-gray-600');
+                btn.classList.add('accent-text');
+                btn.classList.remove('text-secondary');
+                btn.style.borderBottomColor = 'var(--accent-primary)';
             } else {
-                btn.classList.remove('border-primary', 'text-primary');
-                btn.classList.add('border-transparent', 'text-gray-600');
+                btn.classList.remove('accent-text');
+                btn.classList.add('text-secondary');
+                btn.style.borderBottomColor = 'transparent';
             }
         });
 
@@ -825,17 +861,17 @@ class CrispTrackerApp {
             const flavorsText = Object.values(brand.flavors).map(f => f.name).join(', ');
 
             return `
-                <div class="bg-gray-50 rounded-xl p-3 border-2 border-gray-200">
+                <div class="rounded-xl p-3 border-2 border-main" style="background-color: var(--bg-tertiary)">
                     <div class="flex items-start justify-between">
                         <div class="flex items-center gap-2 flex-1">
                             <span class="text-xl">${brand.emoji}</span>
                             <div class="min-w-0">
-                                <p class="font-bold text-text text-sm">${brand.name}</p>
-                                <p class="text-xs text-gray-500 truncate">${flavorsText}</p>
+                                <p class="font-bold text-main text-sm">${brand.name}</p>
+                                <p class="text-xs text-secondary truncate">${flavorsText}</p>
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary text-lg">✏️</button>
+                            <button onclick="app.editBrand('${category}', '${key}')" class="accent-text text-lg">✏️</button>
                             ${isCustom ? `<button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 text-lg">🗑</button>` : ''}
                         </div>
                     </div>
@@ -943,7 +979,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // FRIENDS (продолжение в след. сообщении)
+    // FRIENDS
     // ==========================================
 
     openAddFriend() {
@@ -961,7 +997,7 @@ class CrispTrackerApp {
         if (!query) return;
 
         const resultDiv = document.getElementById('friendSearchResult');
-        resultDiv.innerHTML = '<p class="text-xs text-gray-500">Поиск...</p>';
+        resultDiv.innerHTML = '<p class="text-xs text-secondary">Поиск...</p>';
 
         let user = null;
 
@@ -993,15 +1029,15 @@ class CrispTrackerApp {
         }
 
         resultDiv.innerHTML = `
-            <div class="border-2 border-primary rounded-xl p-3 bg-yellow-50">
+            <div class="border-2 rounded-xl p-3" style="border-color: var(--accent-primary); background-color: var(--bg-tertiary)">
                 <div class="flex items-center gap-2 mb-2">
                     <img src="${user.photoURL}" class="w-10 h-10 rounded-full object-cover">
                     <div class="flex-1 min-w-0">
-                        <p class="font-bold text-text text-sm truncate">${user.username}</p>
-                        <p class="text-xs text-gray-600 truncate">${user.email}</p>
+                        <p class="font-bold text-main text-sm truncate">${user.username}</p>
+                        <p class="text-xs text-secondary truncate">${user.email}</p>
                     </div>
                 </div>
-                <button onclick="app.addFriend('${user.id}')" class="w-full bg-primary text-white font-bold py-2 rounded-lg text-sm">
+                <button onclick="app.addFriend('${user.id}')" class="w-full accent-bg text-white font-bold py-2 rounded-lg text-sm">
                     Добавить
                 </button>
             </div>
@@ -1126,11 +1162,13 @@ class CrispTrackerApp {
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
             if (btn.dataset.tab === tab) {
-                btn.classList.add('border-primary', 'text-primary');
-                btn.classList.remove('border-transparent', 'text-gray-600');
+                btn.classList.add('accent-text');
+                btn.classList.remove('text-secondary');
+                btn.style.borderBottomColor = 'var(--accent-primary)';
             } else {
-                btn.classList.remove('border-primary', 'text-primary');
-                btn.classList.add('border-transparent', 'text-gray-600');
+                btn.classList.remove('accent-text');
+                btn.classList.add('text-secondary');
+                btn.style.borderBottomColor = 'transparent';
             }
         });
 
@@ -1164,9 +1202,9 @@ class CrispTrackerApp {
         const brands = this.getAllBrands('chips');
         
         container.innerHTML = Object.entries(brands).map(([key, brand]) => `
-            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectBrand('chips', '${key}')">
+            <button type="button" class="p-3 border-2 border-main rounded-xl hover:opacity-80 transition text-center active:scale-95" style="background-color: var(--bg-tertiary)" onclick="app.selectBrand('chips', '${key}')">
                 <div class="text-2xl mb-1">${brand.emoji}</div>
-                <div class="text-xs font-semibold truncate">${brand.name}</div>
+                <div class="text-xs font-semibold truncate text-main">${brand.name}</div>
             </button>
         `).join('');
     }
@@ -1176,9 +1214,9 @@ class CrispTrackerApp {
         const brands = this.getAllBrands('croutons');
         
         container.innerHTML = Object.entries(brands).map(([key, brand]) => `
-            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectBrand('croutons', '${key}')">
+            <button type="button" class="p-3 border-2 border-main rounded-xl hover:opacity-80 transition text-center active:scale-95" style="background-color: var(--bg-tertiary)" onclick="app.selectBrand('croutons', '${key}')">
                 <div class="text-2xl mb-1">${brand.emoji}</div>
-                <div class="text-xs font-semibold truncate">${brand.name}</div>
+                <div class="text-xs font-semibold truncate text-main">${brand.name}</div>
             </button>
         `).join('');
     }
@@ -1193,9 +1231,9 @@ class CrispTrackerApp {
         const flavorsContainer = document.getElementById(category + 'Flavors');
         
         flavorsContainer.innerHTML = Object.entries(brand.flavors).map(([key, flavor]) => `
-            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectFlavor('${category}', '${key}')">
+            <button type="button" class="p-3 border-2 border-main rounded-xl hover:opacity-80 transition text-center active:scale-95" style="background-color: var(--bg-tertiary)" onclick="app.selectFlavor('${category}', '${key}')">
                 <div class="text-xl mb-1">${flavor.emoji}</div>
-                <div class="text-xs font-semibold truncate">${flavor.name}</div>
+                <div class="text-xs font-semibold truncate text-main">${flavor.name}</div>
             </button>
         `).join('');
 
@@ -1211,10 +1249,10 @@ class CrispTrackerApp {
 
         const sizesContainer = document.getElementById(category + 'Sizes');
         sizesContainer.innerHTML = DEFAULT_SNACKS[category].sizes.map(size => `
-            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectSize(${size.grams})">
+            <button type="button" class="p-3 border-2 border-main rounded-xl hover:opacity-80 transition text-center active:scale-95" style="background-color: var(--bg-tertiary)" onclick="app.selectSize(${size.grams})">
                 <div class="text-xl mb-1">${size.emoji}</div>
-                <div class="font-bold text-primary text-sm">${size.grams}г</div>
-                <div class="text-xs text-gray-600">${size.label}</div>
+                <div class="font-bold accent-text text-sm">${size.grams}г</div>
+                <div class="text-xs text-secondary">${size.label}</div>
             </button>
         `).join('');
 
