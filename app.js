@@ -1112,32 +1112,42 @@ class CrispTrackerApp {
     }
 
     renderPresets(category) {
-        const allBrands = this.getAllBrands(category);
-        const container = document.getElementById(category + 'PresetsList');
+    const allBrands = this.getAllBrands(category);
+    const container = document.getElementById(category + 'PresetsList');
 
-        container.innerHTML = Object.entries(allBrands).map(([key, brand]) => {
-            const isCustom = key.startsWith('custom_');
-            const flavorsText = Object.values(brand.flavors).map(f => f.name).join(', ');
+    container.innerHTML = Object.entries(allBrands).map(([key, brand]) => {
+        const isCustom = key.startsWith('custom_');
+        const flavorsArray = Object.values(brand.flavors).map(f => f.name);
+        
+        // Ограничиваем отображение до 2 вкусов
+        let flavorsText = '';
+        if (flavorsArray.length <= 2) {
+            flavorsText = flavorsArray.join(', ');
+        } else {
+            const firstTwo = flavorsArray.slice(0, 2).join(', ');
+            const remaining = flavorsArray.length - 2;
+            flavorsText = `${firstTwo} и ещё ${remaining}...`;
+        }
 
-            return `
-                <div class="bg-gray-50 rounded-xl p-3 border-2 border-gray-200">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-2 flex-1">
-                            <span class="text-xl">${brand.emoji}</span>
-                            <div class="min-w-0">
-                                <p class="font-bold text-text text-sm">${brand.name}</p>
-                                <p class="text-xs text-gray-500 truncate">${flavorsText}</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary text-lg">✏️</button>
-                            ${isCustom ? `<button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 text-lg">🗑</button>` : ''}
+        return `
+            <div class="bg-gray-50 rounded-xl p-3 border-2 border-gray-200">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="text-xl flex-shrink-0">${brand.emoji}</span>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-text text-sm truncate">${brand.name}</p>
+                            <p class="text-xs text-gray-500 truncate" title="${Object.values(brand.flavors).map(f => f.name).join(', ')}">${flavorsText}</p>
                         </div>
                     </div>
+                    <div class="flex gap-2 flex-shrink-0">
+                        <button onclick="app.editBrand('${category}', '${key}')" class="text-primary text-lg">✏️</button>
+                        ${isCustom ? `<button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 text-lg">🗑</button>` : ''}
+                    </div>
                 </div>
-            `;
-        }).join('');
-    }
+            </div>
+        `;
+    }).join('');
+}
 
     openAddPreset(category) {
         this.editingBrandKey = null;
