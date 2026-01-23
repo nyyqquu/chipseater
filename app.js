@@ -28,7 +28,6 @@ const QUOTES = [
 let isTelegramApp = false;
 let telegramUser = null;
 
-// Check Telegram availability
 setTimeout(() => {
     if (window.tgApp && window.tgApp.isAvailable()) {
         isTelegramApp = true;
@@ -146,6 +145,8 @@ let currentMonths = {
     history: null
 };
 
+let isTopExpanded = false;
+
 // ==========================================
 // UTILS
 // ==========================================
@@ -181,34 +182,15 @@ class AuthManager {
     }
 
     initAuthListener() {
-        // Wait for Telegram to initialize
         setTimeout(() => {
             if (isTelegramApp && telegramUser) {
                 console.log('Using Telegram auth');
                 this.handleTelegramLogin(telegramUser);
             } else {
-                console.log('Using Firebase auth');
-                auth.onAuthStateChanged(user => {
-                    if (user) {
-                        this.handleLogin(user);
-                    } else {
-                        this.showLoginScreen();
-                    }
-                });
+                console.log('Browser mode - Telegram only');
+                this.showLoginScreen();
             }
         }, 200);
-    }
-
-    async handleLogin(user) {
-        currentUser = user;
-        const profileDoc = await db.collection('users').doc(user.uid).get();
-
-        if (!profileDoc.exists) {
-            this.showProfileSetup(user);
-        } else {
-            document.getElementById('loginScreen').style.display = 'none';
-            window.app = new CrispTrackerApp(user, profileDoc.data());
-        }
     }
 
     async handleTelegramLogin(tgUser) {
@@ -245,35 +227,26 @@ class AuthManager {
             console.error('Telegram login error:', error);
             if (window.tgApp) {
                 window.tgApp.showAlert('Ошибка входа: ' + error.message);
-            } else {
-                alert('Ошибка входа: ' + error.message);
             }
         }
     }
 
     showLoginScreen() {
         document.getElementById('loginScreen').style.display = 'flex';
-        
-        if (!isTelegramApp) {
-            // Show Google login for web version
-            const loginScreen = document.getElementById('loginScreen');
-            loginScreen.innerHTML = `
-                <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
-                    <div class="text-center mb-6">
-                        <div class="inline-block p-4 bg-yellow-100 rounded-full mb-3">
-                            <span class="text-5xl">🍟</span>
-                        </div>
-                        <h1 class="text-3xl font-bold text-text mb-2">CrispTracker</h1>
-                        <p class="text-gray-600 text-sm">Откройте в Telegram для входа</p>
-                        <p class="text-gray-500 text-xs mt-2">t.me/crisptracker_bot/myapp</p>
+        document.getElementById('loginScreen').innerHTML = `
+            <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
+                <div class="text-center mb-6">
+                    <div class="inline-block p-4 bg-yellow-100 rounded-full mb-3">
+                        <span class="text-5xl">🍟</span>
                     </div>
+                    <h1 class="text-3xl font-bold text-text mb-2">CrispTracker</h1>
+                    <p class="text-gray-600 text-sm mb-4">Откройте в Telegram</p>
+                    <a href="https://t.me/crisptracker_bot/myapp" class="inline-block bg-primary text-white px-6 py-3 rounded-xl font-bold">
+                        Открыть в Telegram
+                    </a>
                 </div>
-            `;
-        }
-    }
-
-    showProfileSetup(user) {
-        // Not used for Telegram, profile created automatically
+            </div>
+        `;
     }
 
     async logout() {
@@ -289,7 +262,6 @@ class AuthManager {
             if (isTelegramApp) {
                 window.tgApp.close();
             } else {
-                await auth.signOut();
                 location.reload();
             }
         }
@@ -332,6 +304,9 @@ class CrispTrackerApp {
         document.getElementById('logoutBtn').onclick = () => new AuthManager().logout();
         document.getElementById('manageBrandsBtn').onclick = () => this.openManageBrands();
         document.getElementById('closeBrandsModal').onclick = () => this.closeManageBrands();
+
+        // Top toggle
+        document.getElementById('toggleTopBtn').onclick = () => this.toggleTop();
 
         // Friends
         document.getElementById('addFriendBtn').onclick = () => this.openAddFriend();
@@ -376,6 +351,20 @@ class CrispTrackerApp {
         this.renderChipsBrands();
         this.renderCroutonsBrands();
         showRandomQuote();
+    }
+
+    toggleTop() {
+        isTopExpanded = !isTopExpanded;
+        const topUsers = document.getElementById('topUsers');
+        const btn = document.getElementById('toggleTopBtn');
+        
+        if (isTopExpanded) {
+            topUsers.classList.remove('top-collapsed');
+            btn.textContent = 'Свернуть';
+        } else {
+            topUsers.classList.add('top-collapsed');
+            btn.textContent = 'Показать всех';
+        }
     }
 
     initDateNavigation() {
@@ -441,11 +430,46 @@ class CrispTrackerApp {
 
     async loadData() {
         await Promise.all([
+            this.loadMyStats(),
             this.loadTopUsers(),
             this.loadFriendsList(),
             this.loadHistory(),
             this.renderCharts()
         ]);
+    }
+
+    async loadMyStats() {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const snapshot = await db.collection('entries')
+            .where('userId', '==', this.user.uid)
+            .where('date', '>=', monthAgo.toISOString().split('T')[0])
+            .get();
+
+        let todayTotal = 0;
+        let weekTotal = 0;
+        let monthTotal = 0;
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const grams = data.grams;
+            monthTotal += grams;
+
+            if (data.date >= weekAgo.toISOString().split('T')[0]) {
+                weekTotal += grams;
+            }
+
+            if (data.date === today) {
+                todayTotal += grams;
+            }
+        });
+
+        document.getElementById('myTodayCount').textContent = todayTotal + 'г';
+        document.getElementById('myWeekCount').textContent = weekTotal + 'г';
+        document.getElementById('myMonthCount').textContent = monthTotal + 'г';
     }
 
     async loadTopUsers() {
@@ -476,11 +500,10 @@ class CrispTrackerApp {
         });
 
         const topUsers = Object.values(userTotals)
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 10);
+            .sort((a, b) => b.total - a.total);
 
         if (topUsers.length === 0) {
-            document.getElementById('topUsers').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Добавьте друзей</p>';
+            document.getElementById('topUsers').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Добавьте друзей</p>';
             return;
         }
 
@@ -491,28 +514,35 @@ class CrispTrackerApp {
             const isMe = user.userId === this.user.uid;
 
             return `
-                <div class="flex items-center gap-3 p-3 rounded-xl ${isMe ? 'bg-yellow-50 border-2 border-primary' : 'bg-gray-50'}">
-                    <span class="text-2xl w-8">${medal}</span>
-                    <img src="${user.photoURL}" class="w-10 h-10 rounded-full object-cover">
+                <div class="top-item flex items-center gap-2 p-2 rounded-lg ${isMe ? 'bg-yellow-50 border border-primary' : 'bg-gray-50'}">
+                    <span class="text-lg w-6">${medal}</span>
+                    <img src="${user.photoURL}" class="w-8 h-8 rounded-full object-cover">
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm font-bold text-text truncate">${user.username}</p>
+                        <p class="text-xs font-bold text-text truncate">${user.username}</p>
                     </div>
-                    <p class="text-base font-bold text-primary">${user.total}г</p>
+                    <p class="text-sm font-bold text-primary">${user.total}г</p>
                 </div>
             `;
         }).join('');
+
+        // Show/hide toggle button
+        if (topUsers.length > 3) {
+            document.getElementById('toggleTopBtn').style.display = 'block';
+        } else {
+            document.getElementById('toggleTopBtn').style.display = 'none';
+        }
     }
 
     async loadFriendsList() {
         const friends = this.profile.friends || [];
 
         if (friends.length === 0) {
-            document.getElementById('friendsList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Нет друзей</p>';
+            document.getElementById('friendsList').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Нет друзей</p>';
             return;
         }
 
         const friendsData = await Promise.all(
-            friends.map(async (friendId) => {
+            friends.slice(0, 10).map(async (friendId) => {
                 const doc = await db.collection('users').doc(friendId).get();
                 return doc.exists ? { id: friendId, ...doc.data() } : null;
             })
@@ -521,14 +551,18 @@ class CrispTrackerApp {
         const validFriends = friendsData.filter(f => f !== null);
 
         document.getElementById('friendsList').innerHTML = validFriends.map(friend => `
-            <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                <img src="${friend.photoURL}" class="w-8 h-8 rounded-full object-cover">
+            <div class="flex items-center gap-1.5 p-1.5 bg-gray-50 rounded-lg">
+                <img src="${friend.photoURL}" class="w-6 h-6 rounded-full object-cover">
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-text truncate">${friend.username}</p>
+                    <p class="text-xs font-semibold text-text truncate">${friend.username}</p>
                 </div>
-                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">✕</button>
+                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 text-sm">✕</button>
             </div>
         `).join('');
+
+        if (friends.length > 10) {
+            document.getElementById('friendsList').innerHTML += '<p class="text-xs text-gray-500 text-center mt-1">+ещё ' + (friends.length - 10) + '</p>';
+        }
     }
 
     async loadHistory() {
@@ -550,7 +584,7 @@ class CrispTrackerApp {
         entries.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
 
         if (entries.length === 0) {
-            document.getElementById('historyList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Записей нет</p>';
+            document.getElementById('historyList').innerHTML = '<p class="text-xs text-gray-400 text-center py-2">Записей нет</p>';
             return;
         }
 
@@ -564,15 +598,15 @@ class CrispTrackerApp {
             });
 
             return `
-                <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-yellow-50 transition">
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <div class="text-2xl">${entry.emoji || '🍟'}</div>
+                <div class="flex items-center justify-between p-2 rounded-lg border border-gray-200 hover:bg-yellow-50 transition">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                        <div class="text-xl">${entry.emoji || '🍟'}</div>
                         <div class="min-w-0 flex-1">
-                            <p class="text-sm font-semibold text-text truncate">${entry.grams}г • ${entry.name}</p>
+                            <p class="text-xs font-semibold text-text truncate">${entry.grams}г • ${entry.name}</p>
                             <p class="text-xs text-gray-500">${formatted}</p>
                         </div>
                     </div>
-                    <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2">🗑</button>
+                    <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2 text-lg">🗑</button>
                 </div>
             `;
         }).join('');
@@ -621,11 +655,11 @@ class CrispTrackerApp {
                     data: days.map(d => d.total),
                     borderColor: '#FF9900',
                     backgroundColor: 'rgba(255, 153, 0, 0.1)',
-                    borderWidth: 3,
+                    borderWidth: 2,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 2,
-                    pointHoverRadius: 5
+                    pointRadius: 1,
+                    pointHoverRadius: 4
                 }]
             },
             options: {
@@ -635,7 +669,16 @@ class CrispTrackerApp {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { callback: v => v + 'г' }
+                        ticks: { 
+                            callback: v => v + 'г',
+                            font: { size: 10 }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: 10 },
+                            maxTicksLimit: 10
+                        }
                     }
                 }
             }
@@ -695,7 +738,7 @@ class CrispTrackerApp {
                 borderWidth: 2,
                 fill: false,
                 tension: 0.4,
-                pointRadius: 2
+                pointRadius: 1
             };
         });
 
@@ -715,13 +758,26 @@ class CrispTrackerApp {
                     legend: {
                         display: true,
                         position: 'bottom',
-                        labels: { boxWidth: 12, font: { size: 10 } }
+                        labels: { 
+                            boxWidth: 10, 
+                            font: { size: 9 },
+                            padding: 8
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { callback: v => v + 'г' }
+                        ticks: { 
+                            callback: v => v + 'г',
+                            font: { size: 10 }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: 10 },
+                            maxTicksLimit: 10
+                        }
                     }
                 }
             }
@@ -729,7 +785,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // MANAGE BRANDS
+    // MANAGE BRANDS (продолжение в след. сообщении)
     // ==========================================
 
     openManageBrands() {
@@ -769,18 +825,18 @@ class CrispTrackerApp {
             const flavorsText = Object.values(brand.flavors).map(f => f.name).join(', ');
 
             return `
-                <div class="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
-                    <div class="flex items-start justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-2xl">${brand.emoji}</span>
-                            <div>
-                                <p class="font-bold text-text">${brand.name}</p>
-                                <p class="text-xs text-gray-500">${flavorsText}</p>
+                <div class="bg-gray-50 rounded-xl p-3 border-2 border-gray-200">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-2 flex-1">
+                            <span class="text-xl">${brand.emoji}</span>
+                            <div class="min-w-0">
+                                <p class="font-bold text-text text-sm">${brand.name}</p>
+                                <p class="text-xs text-gray-500 truncate">${flavorsText}</p>
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary hover:text-orange-600">✏️</button>
-                            ${isCustom ? `<button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 hover:text-red-600">🗑</button>` : ''}
+                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary text-lg">✏️</button>
+                            ${isCustom ? `<button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 text-lg">🗑</button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -887,7 +943,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // FRIENDS
+    // FRIENDS (продолжение в след. сообщении)
     // ==========================================
 
     openAddFriend() {
@@ -945,7 +1001,7 @@ class CrispTrackerApp {
                         <p class="text-xs text-gray-600 truncate">${user.email}</p>
                     </div>
                 </div>
-                <button onclick="app.addFriend('${user.id}')" class="w-full bg-primary hover:bg-orange-600 text-white font-bold py-2 rounded-lg text-sm">
+                <button onclick="app.addFriend('${user.id}')" class="w-full bg-primary text-white font-bold py-2 rounded-lg text-sm">
                     Добавить
                 </button>
             </div>
@@ -1045,7 +1101,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // ADD SNACK
+    // ADD SNACK (Mobile Optimized)
     // ==========================================
 
     openAddModal() {
@@ -1109,7 +1165,7 @@ class CrispTrackerApp {
         
         container.innerHTML = Object.entries(brands).map(([key, brand]) => `
             <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectBrand('chips', '${key}')">
-                <div class="text-xl mb-1">${brand.emoji}</div>
+                <div class="text-2xl mb-1">${brand.emoji}</div>
                 <div class="text-xs font-semibold truncate">${brand.name}</div>
             </button>
         `).join('');
@@ -1121,7 +1177,7 @@ class CrispTrackerApp {
         
         container.innerHTML = Object.entries(brands).map(([key, brand]) => `
             <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectBrand('croutons', '${key}')">
-                <div class="text-xl mb-1">${brand.emoji}</div>
+                <div class="text-2xl mb-1">${brand.emoji}</div>
                 <div class="text-xs font-semibold truncate">${brand.name}</div>
             </button>
         `).join('');
@@ -1138,7 +1194,7 @@ class CrispTrackerApp {
         
         flavorsContainer.innerHTML = Object.entries(brand.flavors).map(([key, flavor]) => `
             <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectFlavor('${category}', '${key}')">
-                <div class="text-lg mb-1">${flavor.emoji}</div>
+                <div class="text-xl mb-1">${flavor.emoji}</div>
                 <div class="text-xs font-semibold truncate">${flavor.name}</div>
             </button>
         `).join('');
@@ -1156,8 +1212,8 @@ class CrispTrackerApp {
         const sizesContainer = document.getElementById(category + 'Sizes');
         sizesContainer.innerHTML = DEFAULT_SNACKS[category].sizes.map(size => `
             <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectSize(${size.grams})">
-                <div class="text-lg mb-1">${size.emoji}</div>
-                <div class="font-bold text-primary">${size.grams}г</div>
+                <div class="text-xl mb-1">${size.emoji}</div>
+                <div class="font-bold text-primary text-sm">${size.grams}г</div>
                 <div class="text-xs text-gray-600">${size.label}</div>
             </button>
         `).join('');
@@ -1263,12 +1319,12 @@ class CrispTrackerApp {
     }
 
     showToast(message) {
-        if (isTelegramApp) {
+        if (isTelegramApp && window.tgApp) {
             window.tgApp.hapticFeedback('light');
         }
         
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-50 text-sm';
+        toast.className = 'fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg z-50 text-sm animate-fade-in';
         toast.textContent = message;
         document.body.appendChild(toast);
 
