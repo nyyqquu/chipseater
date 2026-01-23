@@ -161,6 +161,19 @@
             </div>
         </div>
 
+        <!-- КАЛЕНДАРЬ (НОВОЕ) -->
+        <div class="bg-white rounded-xl shadow-lg compact-card mb-2">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-xs font-bold text-text">📅 Календарь активности</h3>
+                <div class="flex items-center gap-1">
+                    <button type="button" id="calendarPrev" class="p-1 text-gray-600">◀</button>
+                    <input type="month" id="calendarMonth" class="px-1 py-0.5 border rounded text-xs w-24">
+                    <button type="button" id="calendarNext" class="p-1 text-gray-600">▶</button>
+                </div>
+            </div>
+            <div id="calendarGrid"></div>
+        </div>
+
         <div class="bg-white rounded-xl shadow-lg compact-card mb-2">
             <div class="flex items-center justify-between mb-2">
                 <h3 class="text-xs font-bold text-text">🕐 История</h3>
