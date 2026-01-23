@@ -138,6 +138,12 @@ textarea:disabled {
     opacity: 0.6;
 }
 
+input:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
 /* ==========================================
    CHARTS
    ========================================== */
@@ -163,6 +169,10 @@ button {
 
 button:active {
     transform: scale(0.95);
+}
+
+button:hover {
+    opacity: 0.9;
 }
 
 /* ==========================================
@@ -285,4 +295,31 @@ body.dark-theme .gradient-primary {
 
 .shadow-custom-xl {
     box-shadow: var(--shadow-xl);
+}
+
+/* ==========================================
+   THEME SPECIFIC OVERRIDES
+   ========================================== */
+
+body.dark-theme input[type="month"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+body.dark-theme .bg-yellow-50 {
+    background-color: rgba(10, 132, 255, 0.1) !important;
+}
+
+body.dark-theme .bg-gray-50 {
+    background-color: var(--bg-tertiary) !important;
+}
+
+body.dark-theme .text-gray-400,
+body.dark-theme .text-gray-500,
+body.dark-theme .text-gray-600 {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .border-gray-200,
+body.dark-theme .border-gray-300 {
+    border-color: var(--border-color) !important;
 }
