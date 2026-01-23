@@ -1633,21 +1633,33 @@ selectSize(grams) {
         }
     }
 
-    async deleteEntry(id) {
+async deleteEntry(id) {
+    try {
         const confirmed = await new Promise(resolve => {
-            if (window.tgApp) {
-                window.tgApp.showConfirm('Удалить?', resolve);
+            if (window.tgApp && window.tgApp.isAvailable()) {
+                window.tgApp.showConfirm('Удалить запись?', resolve);
             } else {
-                resolve(confirm('Удалить?'));
+                resolve(confirm('Удалить запись?'));
             }
         });
 
-        if (confirmed) {
-            await db.collection('entries').doc(id).delete();
-            this.loadData();
-            this.showToast('🗑️ Удалено');
+        if (!confirmed) return;
+
+        await db.collection('entries').doc(id).delete();
+        
+        // Перезагружаем данные
+        await this.loadData();
+        
+        this.showToast('🗑️ Удалено');
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        if (window.tgApp && window.tgApp.isAvailable()) {
+            window.tgApp.showAlert('Ошибка: ' + error.message);
+        } else {
+            alert('Ошибка: ' + error.message);
         }
     }
+}
 
     showToast(message) {
         if (isTelegramApp && window.tgApp) {
