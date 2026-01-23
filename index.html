@@ -65,6 +65,23 @@
         .top-collapsed .top-item:nth-child(n+4) {
             display: none;
         }
+        /* Визуальная обратная связь при выборе */
+.selected-item {
+    border-color: #FF9900 !important;
+    background-color: #FFF4E6 !important;
+    transform: scale(1.05);
+    box-shadow: 0 4px 6px rgba(255, 153, 0, 0.3);
+}
+
+/* Анимация при клике */
+button:active {
+    transform: scale(0.95);
+}
+
+/* Плавные переходы */
+button {
+    transition: all 0.2s ease;
+}
     </style>
 </head>
 <body class="bg-background">
