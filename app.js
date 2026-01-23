@@ -2,48 +2,45 @@
 // QUOTES DATABASE
 // ==========================================
 
-```javascript
-const CHIP_QUOTES = [
-  "Чипсы — это не еда, это способ жизни.",
-  "Почему чипсы такие вкусные? Потому что они знают, что их съедят.",
-  "Я не ленивый, я просто в режиме 'чипсовой экономии'.",
-  "Чипсы — единственная валюта, которую я признаю.",
-  "Диета? Я на диете из чипсов.",
-  "Чипсы не решают проблемы, но шоколад тоже.",
-  "Если чипсы — зло, то я злодей.",
-  "Чипсы — это овощи, просто очень обработанные.",
-  "Я считаю калории... в пачках чипсов.",
-  "Чипсы — мой духовный наставник.",
-  "Открыл пачку чипсов «на попробовать». Пачка закончилась.",
-  "Чипсы и я — это серьёзные отношения.",
-  "Я не зависим от чипсов, я просто очень их люблю.",
-  "Чипсы — это хрустящее счастье.",
-  "Почему делиться чипсами? Это же не коммунизм!",
-  "Чипсы — мой антидепрессант без рецепта.",
-  "Чипсы — не перекус, а философия: хрусти и властвуй!",
-  "Почему я всегда нахожу пачку чипсов? Потому что они, как верные друзья, всегда рядом… особенно когда не надо!",
-  "Я не откладываю дела — я в режиме «ожидания новых чипсов». Это стратегическое ожидание!",
-  "Чипсы — единственная инвестиция, которая окупается не деньгами, а хрустом!",
-  "Здоровое питание? У меня сбалансированный рацион: 70 % чипсов со вкусом барбекю, 20 % со вкусом сметаны и лука, 10 % сожалений.",
-  "Чипсы не устраняют стресс, но превращают его в весёлый саундтрек из хруста.",
-  "Если чипсы — грех, то я не просто грешник, а рецидивист с многолетним стажем!",
-  "Чипсы — это почти салат, только без слёз (потому что лук уже в приправе) и без мытья посуды.",
-  "Считаю не калории, а количество удачных хрустов. Сегодня рекорд — 42 идеальных хруста!",
-  "Чипсы — мой компас в мире вкусов: куда ни поверни, везде вкусно.",
-  "Сказал себе: «Только горсть чипсов». Оказалось — горсти три, плюс щепотка вины и ложка оправданий.",
-  "Наши отношения с чипсами — как в мелодраме: страсть, зависимость и вечная борьба за последнюю чипсину.",
-  "Это не зависимость, это глубокая гастрономическая привязанность… и немного шопоголизм в отделе снеков.",
-  "Чипсы — звук счастья, упакованный в пачку. А ещё звук паники, когда слышишь, что пакет почти пуст.",
-  "Делиться чипсами? Только если это часть ритуала дружбы — и если у тебя есть вторая пачка на всякий случай.",
-  "Чипсы — легальный способ мгновенного улучшения настроения. Врач не выписывает, но душа требует!",
-  "Жизнь слишком коротка, чтобы есть невкусные чипсы. Поэтому я тестирую все вкусы — это моя миссия!",
-  "Чипсы — мой главный аргумент в пользу радости здесь и сейчас. А ещё в пользу «ещё одну пачку, пожалуйста».",
-  "Когда мир рушится, чипсы держат меня на плаву — и в хрустящем состоянии. Это мой личный спасательный круг!",
-  "Чипсы: маленький кусочек радости в большом пакете… и большой повод для беспокойства, когда пакет заканчивается."
+const QUOTES = [
+    "Чипсы — это не еда, это способ жизни.",
+    "Почему чипсы такие вкусные? Потому что они знают, что их съедят.",
+    "Я не ленивый, я просто в режиме 'чипсовой экономии'.",
+    "Чипсы — единственная валюта, которую я признаю.",
+    "Диета? Я на диете из чипсов.",
+    "Чипсы не решают проблемы, но шоколад тоже.",
+    "Если чипсы — зло, то я злодей.",
+    "Чипсы — это овощи, просто очень обработанные.",
+    "Я считаю калории... в пачках чипсов.",
+    "Чипсы — мой духовный наставник.",
+    "Открыл пачку чипсов «на попробовать». Пачка закончилась.",
+    "Чипсы и я — это серьёзные отношения.",
+    "Я не зависим от чипсов, я просто очень их люблю.",
+    "Чипсы — это хрустящее счастье.",
+    "Почему делиться чипсами? Это же не коммунизм!",
+    "Чипсы — мой антидепрессант без рецепта."
 ];
 
 // ==========================================
-// SNACK DATABASE (Default)
+// TELEGRAM INTEGRATION
+// ==========================================
+
+let isTelegramApp = false;
+let telegramUser = null;
+
+// Check Telegram availability
+setTimeout(() => {
+    if (window.tgApp && window.tgApp.isAvailable()) {
+        isTelegramApp = true;
+        telegramUser = window.tgApp.getUser();
+        console.log('Running in Telegram, user:', telegramUser);
+    } else {
+        console.log('Running in browser');
+    }
+}, 100);
+
+// ==========================================
+// SNACK DATABASE
 // ==========================================
 
 const DEFAULT_SNACKS = {
@@ -184,13 +181,22 @@ class AuthManager {
     }
 
     initAuthListener() {
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                this.handleLogin(user);
+        // Wait for Telegram to initialize
+        setTimeout(() => {
+            if (isTelegramApp && telegramUser) {
+                console.log('Using Telegram auth');
+                this.handleTelegramLogin(telegramUser);
             } else {
-                this.showLoginScreen();
+                console.log('Using Firebase auth');
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        this.handleLogin(user);
+                    } else {
+                        this.showLoginScreen();
+                    }
+                });
             }
-        });
+        }, 200);
     }
 
     async handleLogin(user) {
@@ -205,96 +211,87 @@ class AuthManager {
         }
     }
 
-    showLoginScreen() {
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('googleLoginBtn').onclick = () => this.loginWithGoogle();
-    }
-
-    async loginWithGoogle() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
+    async handleTelegramLogin(tgUser) {
+        console.log('Handling Telegram login for:', tgUser);
         
+        const userId = 'tg_' + tgUser.id;
+        currentUser = { uid: userId };
+
         try {
-            await auth.signInWithPopup(provider);
-        } catch (error) {
-            if (error.code === 'auth/popup-blocked') {
-                await auth.signInWithRedirect(provider);
+            const profileDoc = await db.collection('users').doc(userId).get();
+
+            if (!profileDoc.exists) {
+                console.log('Creating new Telegram user profile');
+                await db.collection('users').doc(userId).set({
+                    username: tgUser.username,
+                    firstName: tgUser.firstName,
+                    lastName: tgUser.lastName,
+                    email: `tg_${tgUser.id}@telegram.user`,
+                    photoURL: tgUser.photoURL,
+                    telegramId: tgUser.id,
+                    friends: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                const newProfile = await db.collection('users').doc(userId).get();
+                document.getElementById('loginScreen').style.display = 'none';
+                window.app = new CrispTrackerApp({ uid: userId }, newProfile.data());
             } else {
-                console.error('Login error:', error);
+                console.log('Existing Telegram user found');
+                document.getElementById('loginScreen').style.display = 'none';
+                window.app = new CrispTrackerApp({ uid: userId }, profileDoc.data());
+            }
+        } catch (error) {
+            console.error('Telegram login error:', error);
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ошибка входа: ' + error.message);
+            } else {
                 alert('Ошибка входа: ' + error.message);
             }
         }
     }
 
-    showProfileSetup(user) {
-        document.getElementById('loginScreen').style.display = 'none';
-        const modal = document.getElementById('profileSetupModal');
-        modal.classList.remove('hidden');
-
-        document.getElementById('emailDisplay').value = user.email;
-        document.getElementById('profilePreview').src = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.email);
-
-        document.getElementById('changePhotoBtn').onclick = () => {
-            document.getElementById('photoInput').click();
-        };
-
-        document.getElementById('photoInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('profilePreview').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        document.getElementById('saveProfileBtn').onclick = () => this.saveProfile(user);
+    showLoginScreen() {
+        document.getElementById('loginScreen').style.display = 'flex';
+        
+        if (!isTelegramApp) {
+            // Show Google login for web version
+            const loginScreen = document.getElementById('loginScreen');
+            loginScreen.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
+                    <div class="text-center mb-6">
+                        <div class="inline-block p-4 bg-yellow-100 rounded-full mb-3">
+                            <span class="text-5xl">🍟</span>
+                        </div>
+                        <h1 class="text-3xl font-bold text-text mb-2">CrispTracker</h1>
+                        <p class="text-gray-600 text-sm">Откройте в Telegram для входа</p>
+                        <p class="text-gray-500 text-xs mt-2">t.me/crisptracker_bot/myapp</p>
+                    </div>
+                </div>
+            `;
+        }
     }
 
-    async saveProfile(user) {
-        const username = document.getElementById('usernameInput').value.trim().toLowerCase();
-
-        if (!username || !/^[a-z0-9_]+$/.test(username)) {
-            alert('Ник должен содержать только латиницу, цифры и _');
-            return;
-        }
-
-        const usernameQuery = await db.collection('users')
-            .where('username', '==', username)
-            .get();
-
-        if (!usernameQuery.empty && usernameQuery.docs[0].id !== user.uid) {
-            alert('Этот ник уже занят');
-            return;
-        }
-
-        const photoFile = document.getElementById('photoInput').files[0];
-        let photoURL = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(username);
-
-        if (photoFile) {
-            const storageRef = storage.ref(`avatars/${user.uid}`);
-            await storageRef.put(photoFile);
-            photoURL = await storageRef.getDownloadURL();
-        }
-
-        await db.collection('users').doc(user.uid).set({
-            username: username,
-            email: user.email,
-            photoURL: photoURL,
-            friends: [],
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        location.reload();
+    showProfileSetup(user) {
+        // Not used for Telegram, profile created automatically
     }
 
     async logout() {
-        if (confirm('Выйти из аккаунта?')) {
-            await auth.signOut();
-            location.reload();
+        const confirmed = await new Promise(resolve => {
+            if (window.tgApp) {
+                window.tgApp.showConfirm('Выйти из аккаунта?', resolve);
+            } else {
+                resolve(confirm('Выйти из аккаунта?'));
+            }
+        });
+
+        if (confirmed) {
+            if (isTelegramApp) {
+                window.tgApp.close();
+            } else {
+                await auth.signOut();
+                location.reload();
+            }
         }
     }
 }
@@ -376,6 +373,8 @@ class CrispTrackerApp {
         document.getElementById('addChipsPreset').onclick = () => this.openAddPreset('chips');
         document.getElementById('addCroutonsPreset').onclick = () => this.openAddPreset('croutons');
 
+        this.renderChipsBrands();
+        this.renderCroutonsBrands();
         showRandomQuote();
     }
 
@@ -527,11 +526,7 @@ class CrispTrackerApp {
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-text truncate">${friend.username}</p>
                 </div>
-                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <button onclick="app.removeFriend('${friend.id}')" class="text-red-500 hover:text-red-600">✕</button>
             </div>
         `).join('');
     }
@@ -577,11 +572,7 @@ class CrispTrackerApp {
                             <p class="text-xs text-gray-500">${formatted}</p>
                         </div>
                     </div>
-                    <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>
+                    <button onclick="app.deleteEntry('${entry.id}')" class="text-gray-400 hover:text-red-500 ml-2">🗑</button>
                 </div>
             `;
         }).join('');
@@ -788,18 +779,8 @@ class CrispTrackerApp {
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary hover:text-orange-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                            </button>
-                            ${isCustom ? `
-                                <button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 hover:text-red-600">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </button>
-                            ` : ''}
+                            <button onclick="app.editBrand('${category}', '${key}')" class="text-primary hover:text-orange-600">✏️</button>
+                            ${isCustom ? `<button onclick="app.deleteBrand('${category}', '${key}')" class="text-red-500 hover:text-red-600">🗑</button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -840,7 +821,11 @@ class CrispTrackerApp {
         const flavorsText = document.getElementById('editBrandFlavors').value.trim();
 
         if (!name || !flavorsText) {
-            alert('Заполните все поля');
+            if (window.tgApp) {
+                window.tgApp.showAlert('Заполните все поля');
+            } else {
+                alert('Заполните все поля');
+            }
             return;
         }
 
@@ -879,7 +864,15 @@ class CrispTrackerApp {
     }
 
     async deleteBrand(category, brandKey) {
-        if (!confirm('Удалить этот бренд?')) return;
+        const confirmed = await new Promise(resolve => {
+            if (window.tgApp) {
+                window.tgApp.showConfirm('Удалить этот бренд?', resolve);
+            } else {
+                resolve(confirm('Удалить этот бренд?'));
+            }
+        });
+
+        if (!confirmed) return;
 
         delete this.customBrands[category][brandKey];
 
@@ -973,7 +966,15 @@ class CrispTrackerApp {
     }
 
     async removeFriend(friendId) {
-        if (!confirm('Удалить?')) return;
+        const confirmed = await new Promise(resolve => {
+            if (window.tgApp) {
+                window.tgApp.showConfirm('Удалить?', resolve);
+            } else {
+                resolve(confirm('Удалить?'));
+            }
+        });
+
+        if (!confirmed) return;
 
         const friends = (this.profile.friends || []).filter(id => id !== friendId);
         await db.collection('users').doc(this.user.uid).update({ friends });
@@ -1002,7 +1003,11 @@ class CrispTrackerApp {
         const username = document.getElementById('editUsernameInput').value.trim().toLowerCase();
 
         if (!username || !/^[a-z0-9_]+$/.test(username)) {
-            alert('Ник: латиница, цифры, _');
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ник: латиница, цифры, _');
+            } else {
+                alert('Ник: латиница, цифры, _');
+            }
             return;
         }
 
@@ -1012,7 +1017,11 @@ class CrispTrackerApp {
                 .get();
 
             if (!usernameQuery.empty) {
-                alert('Ник занят');
+                if (window.tgApp) {
+                    window.tgApp.showAlert('Ник занят');
+                } else {
+                    alert('Ник занят');
+                }
                 return;
             }
         }
@@ -1187,12 +1196,20 @@ class CrispTrackerApp {
         const dateTime = document.getElementById('dateTimeInput').value;
 
         if (!grams || grams <= 0) {
-            alert('Введите граммы');
+            if (window.tgApp) {
+                window.tgApp.showAlert('Введите граммы');
+            } else {
+                alert('Введите граммы');
+            }
             return;
         }
 
         if (!currentSelection.brand || !currentSelection.flavor) {
-            alert('Выберите снек');
+            if (window.tgApp) {
+                window.tgApp.showAlert('Выберите снек');
+            } else {
+                alert('Выберите снек');
+            }
             return;
         }
 
@@ -1221,12 +1238,24 @@ class CrispTrackerApp {
             this.showToast(`✅ ${grams}г добавлено!`);
         } catch (error) {
             console.error('Error:', error);
-            alert('Ошибка: ' + error.message);
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ошибка: ' + error.message);
+            } else {
+                alert('Ошибка: ' + error.message);
+            }
         }
     }
 
     async deleteEntry(id) {
-        if (confirm('Удалить?')) {
+        const confirmed = await new Promise(resolve => {
+            if (window.tgApp) {
+                window.tgApp.showConfirm('Удалить?', resolve);
+            } else {
+                resolve(confirm('Удалить?'));
+            }
+        });
+
+        if (confirmed) {
             await db.collection('entries').doc(id).delete();
             this.loadData();
             this.showToast('🗑️ Удалено');
@@ -1234,6 +1263,10 @@ class CrispTrackerApp {
     }
 
     showToast(message) {
+        if (isTelegramApp) {
+            window.tgApp.hapticFeedback('light');
+        }
+        
         const toast = document.createElement('div');
         toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-50 text-sm';
         toast.textContent = message;
