@@ -1,3 +1,44 @@
+/* ==========================================
+   CSS VARIABLES (Dynamic from Telegram)
+   ========================================== */
+
+:root {
+    /* Will be overridden by telegram-init.js */
+    --bg-primary: #F5F5F5;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #FFFFFF;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
+    --accent-primary: #FF9900;
+    --accent-secondary: #FF7700;
+    --border-color: #E5E5E5;
+    --success-color: #00CC66;
+    --error-color: #FF3B30;
+    --warning-color: #FF9500;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================
+   DARK THEME ADJUSTMENTS
+   ========================================== */
+
+body.dark-theme {
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -13,31 +54,61 @@
     animation: fadeIn 0.3s ease-out;
 }
 
-#modal.show #modalContent {
-    transform: scale(1);
-    opacity: 1;
+/* ==========================================
+   BASE STYLES
+   ========================================== */
+
+* { 
+    -webkit-tap-highlight-color: transparent; 
+    box-sizing: border-box;
+}
+
+body { 
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 html {
     scroll-behavior: smooth;
 }
 
+/* ==========================================
+   SCROLLBAR
+   ========================================== */
+
 ::-webkit-scrollbar {
     width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #FFF4E6;
+    background: var(--bg-tertiary);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #FFD93D;
+    background: var(--accent-primary);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #FF9A3D;
+    background: var(--accent-secondary);
 }
+
+.scrollbar-hide::-webkit-scrollbar { 
+    display: none; 
+}
+
+.scrollbar-hide { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+/* ==========================================
+   INPUTS
+   ========================================== */
 
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
@@ -49,17 +120,169 @@ input[type="number"] {
     -moz-appearance: textfield;
 }
 
+input, textarea, select {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+input:disabled,
+textarea:disabled {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+/* ==========================================
+   CHARTS
+   ========================================== */
+
+.chart-container { 
+    position: relative; 
+    height: 180px; 
+}
+
+/* ==========================================
+   BUTTONS & INTERACTIONS
+   ========================================== */
+
 .quick-select.active {
-    background: #FF9A3D;
-    border-color: #C65D21;
+    background: var(--accent-primary);
+    border-color: var(--accent-secondary);
     transform: scale(1.05);
 }
 
+button {
+    transition: all 0.2s ease;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* ==========================================
+   CARDS
+   ========================================== */
+
+.compact-card {
+    padding: 12px;
+    margin-bottom: 8px;
+    background-color: var(--bg-secondary);
+    box-shadow: var(--shadow-md);
+}
+
+/* ==========================================
+   HISTORY
+   ========================================== */
+
 .history-item {
     transition: all 0.2s;
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
 }
 
 .history-item:hover {
-    background: #FFF4E6;
+    background-color: var(--bg-tertiary);
     transform: translateX(4px);
+}
+
+/* ==========================================
+   FRIENDS LIST
+   ========================================== */
+
+.friends-scroll {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* ==========================================
+   TOP USERS
+   ========================================== */
+
+.top-collapsed .top-item:nth-child(n+4) {
+    display: none;
+}
+
+.top-item {
+    background-color: var(--bg-tertiary);
+}
+
+body.dark-theme .top-item.highlight {
+    background-color: rgba(10, 132, 255, 0.15);
+    border-color: var(--accent-primary);
+}
+
+body.light-theme .top-item.highlight {
+    background-color: #FFF4E6;
+    border-color: var(--accent-primary);
+}
+
+/* ==========================================
+   MODALS
+   ========================================== */
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+body.dark-theme .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    background-color: var(--bg-secondary);
+}
+
+/* ==========================================
+   BADGES & TAGS
+   ========================================== */
+
+.badge {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+/* ==========================================
+   GRADIENTS
+   ========================================== */
+
+body.light-theme .gradient-primary {
+    background: linear-gradient(135deg, #FF9900 0%, #FF7700 100%);
+}
+
+body.dark-theme .gradient-primary {
+    background: linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%);
+}
+
+/* ==========================================
+   BORDERS
+   ========================================== */
+
+.border-custom {
+    border-color: var(--border-color);
+}
+
+/* ==========================================
+   SHADOWS
+   ========================================== */
+
+.shadow-custom-sm {
+    box-shadow: var(--shadow-sm);
+}
+
+.shadow-custom-md {
+    box-shadow: var(--shadow-md);
+}
+
+.shadow-custom-lg {
+    box-shadow: var(--shadow-lg);
+}
+
+.shadow-custom-xl {
+    box-shadow: var(--shadow-xl);
 }
