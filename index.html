@@ -43,26 +43,20 @@
             overscroll-behavior: none;
             -webkit-user-select: none;
             user-select: none;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
         }
         .chart-container { position: relative; height: 180px; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        :root {
-            --tg-theme-bg-color: #F5F5F5;
-            --tg-theme-text-color: #000000;
-            --tg-theme-button-color: #FF9900;
-        }
-        
-        body.dark-theme {
-            background: #212121;
-            color: #ffffff;
-        }
 
         /* Compact spacing */
         .compact-card {
             padding: 12px;
             margin-bottom: 8px;
+            background-color: var(--bg-secondary);
+            box-shadow: var(--shadow-md);
         }
 
         /* Friend list scroll */
@@ -75,9 +69,19 @@
         .top-collapsed .top-item:nth-child(n+4) {
             display: none;
         }
+
+        /* Theme-aware styles */
+        .bg-card { background-color: var(--bg-secondary); }
+        .bg-input { background-color: var(--bg-tertiary); }
+        .text-main { color: var(--text-primary); }
+        .text-secondary { color: var(--text-secondary); }
+        .text-tertiary { color: var(--text-tertiary); }
+        .border-main { border-color: var(--border-color); }
+        .accent-bg { background-color: var(--accent-primary); }
+        .accent-text { color: var(--accent-primary); }
     </style>
 </head>
-<body class="bg-background">
+<body>
     
     <!-- Login Screen -->
     <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-primary to-orange-600 z-50 flex items-center justify-center p-4">
@@ -93,15 +97,15 @@
     </div>
 
     <!-- Header -->
-    <header class="bg-white shadow-md sticky top-0 z-30">
+    <header class="sticky top-0 z-30 shadow-custom-md bg-card">
         <div class="px-3 py-2 flex items-center justify-between">
-            <button type="button" id="profileBtn" class="w-10 h-10 rounded-lg overflow-hidden border-2 border-primary shadow-sm">
+            <button type="button" id="profileBtn" class="w-10 h-10 rounded-lg overflow-hidden border-2 border-main shadow-sm">
                 <img id="headerAvatar" src="" alt="" class="w-full h-full object-cover">
             </button>
             
-            <h1 class="text-lg font-bold text-text">🍟 CrispTracker</h1>
+            <h1 class="text-lg font-bold text-main">🍟 CrispTracker</h1>
             
-            <button type="button" id="manageBrandsBtn" class="bg-primary text-white px-2 py-1 rounded-lg text-xs font-semibold">
+            <button type="button" id="manageBrandsBtn" class="accent-bg text-white px-2 py-1 rounded-lg text-xs font-semibold">
                 ⚙️
             </button>
         </div>
@@ -114,59 +118,59 @@
         <div class="grid grid-cols-2 gap-2 mb-2">
             
             <!-- My Stats -->
-            <div class="bg-white rounded-xl shadow-lg compact-card">
-                <h3 class="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+            <div class="bg-card rounded-xl shadow-custom-lg compact-card">
+                <h3 class="text-xs font-bold text-secondary mb-2 flex items-center gap-1">
                     📊 Моя статистика
                 </h3>
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-600">Сегодня</span>
-                        <span class="text-base font-bold text-primary" id="myTodayCount">0г</span>
+                        <span class="text-xs text-secondary">Сегодня</span>
+                        <span class="text-base font-bold accent-text" id="myTodayCount">0г</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-600">Неделя</span>
-                        <span class="text-base font-bold text-primary" id="myWeekCount">0г</span>
+                        <span class="text-xs text-secondary">Неделя</span>
+                        <span class="text-base font-bold accent-text" id="myWeekCount">0г</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-600">Месяц</span>
-                        <span class="text-base font-bold text-primary" id="myMonthCount">0г</span>
+                        <span class="text-xs text-secondary">Месяц</span>
+                        <span class="text-base font-bold accent-text" id="myMonthCount">0г</span>
                     </div>
                 </div>
             </div>
 
             <!-- Friends List -->
-            <div class="bg-white rounded-xl shadow-lg compact-card">
+            <div class="bg-card rounded-xl shadow-custom-lg compact-card">
                 <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-xs font-bold text-gray-700">👥 Друзья</h3>
-                    <button type="button" id="addFriendBtn" class="text-primary text-lg">+</button>
+                    <h3 class="text-xs font-bold text-secondary">👥 Друзья</h3>
+                    <button type="button" id="addFriendBtn" class="accent-text text-lg">+</button>
                 </div>
                 <div id="friendsList" class="friends-scroll space-y-1">
-                    <p class="text-xs text-gray-400 text-center py-2">Нет друзей</p>
+                    <p class="text-xs text-tertiary text-center py-2">Нет друзей</p>
                 </div>
             </div>
         </div>
 
         <!-- Leaderboard (collapsible) -->
-        <div class="bg-white rounded-xl shadow-lg compact-card mb-2">
+        <div class="bg-card rounded-xl shadow-custom-lg compact-card mb-2">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-sm font-bold text-text">🏆 Топ за месяц</h3>
-                <button type="button" id="toggleTopBtn" class="text-primary text-xs font-semibold">
+                <h3 class="text-sm font-bold text-main">🏆 Топ за месяц</h3>
+                <button type="button" id="toggleTopBtn" class="accent-text text-xs font-semibold">
                     Показать всех
                 </button>
             </div>
             <div id="topUsers" class="top-collapsed space-y-1">
-                <p class="text-xs text-gray-400 text-center py-2">Загрузка...</p>
+                <p class="text-xs text-tertiary text-center py-2">Загрузка...</p>
             </div>
         </div>
 
         <!-- My Chart -->
-        <div class="bg-white rounded-xl shadow-lg compact-card mb-2">
+        <div class="bg-card rounded-xl shadow-custom-lg compact-card mb-2">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xs font-bold text-text">📊 Мой прогресс</h3>
+                <h3 class="text-xs font-bold text-main">📊 Мой прогресс</h3>
                 <div class="flex items-center gap-1">
-                    <button type="button" id="myChartPrev" class="p-1 text-gray-600">◀</button>
-                    <input type="month" id="myChartMonth" class="px-1 py-0.5 border rounded text-xs w-24">
-                    <button type="button" id="myChartNext" class="p-1 text-gray-600">▶</button>
+                    <button type="button" id="myChartPrev" class="p-1 text-secondary">◀</button>
+                    <input type="month" id="myChartMonth" class="px-1 py-0.5 border border-main rounded text-xs w-24 bg-input text-main">
+                    <button type="button" id="myChartNext" class="p-1 text-secondary">▶</button>
                 </div>
             </div>
             <div class="chart-container">
@@ -175,13 +179,13 @@
         </div>
 
         <!-- Comparison Chart -->
-        <div class="bg-white rounded-xl shadow-lg compact-card mb-2">
+        <div class="bg-card rounded-xl shadow-custom-lg compact-card mb-2">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xs font-bold text-text">👥 Сравнение</h3>
+                <h3 class="text-xs font-bold text-main">👥 Сравнение</h3>
                 <div class="flex items-center gap-1">
-                    <button type="button" id="compChartPrev" class="p-1 text-gray-600">◀</button>
-                    <input type="month" id="compChartMonth" class="px-1 py-0.5 border rounded text-xs w-24">
-                    <button type="button" id="compChartNext" class="p-1 text-gray-600">▶</button>
+                    <button type="button" id="compChartPrev" class="p-1 text-secondary">◀</button>
+                    <input type="month" id="compChartMonth" class="px-1 py-0.5 border border-main rounded text-xs w-24 bg-input text-main">
+                    <button type="button" id="compChartNext" class="p-1 text-secondary">▶</button>
                 </div>
             </div>
             <div class="chart-container">
@@ -190,22 +194,22 @@
         </div>
 
         <!-- History -->
-        <div class="bg-white rounded-xl shadow-lg compact-card mb-2">
+        <div class="bg-card rounded-xl shadow-custom-lg compact-card mb-2">
             <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xs font-bold text-text">🕐 История</h3>
+                <h3 class="text-xs font-bold text-main">🕐 История</h3>
                 <div class="flex items-center gap-1">
-                    <button type="button" id="historyPrev" class="p-1 text-gray-600">◀</button>
-                    <input type="month" id="historyMonth" class="px-1 py-0.5 border rounded text-xs w-24">
-                    <button type="button" id="historyNext" class="p-1 text-gray-600">▶</button>
+                    <button type="button" id="historyPrev" class="p-1 text-secondary">◀</button>
+                    <input type="month" id="historyMonth" class="px-1 py-0.5 border border-main rounded text-xs w-24 bg-input text-main">
+                    <button type="button" id="historyNext" class="p-1 text-secondary">▶</button>
                 </div>
             </div>
             <div id="historyList" class="space-y-1">
-                <p class="text-xs text-gray-400 text-center py-2">Записей нет</p>
+                <p class="text-xs text-tertiary text-center py-2">Записей нет</p>
             </div>
         </div>
 
         <!-- Quote -->
-        <div class="bg-gradient-to-r from-primary to-orange-500 rounded-xl shadow-lg compact-card text-white">
+        <div class="gradient-primary rounded-xl shadow-custom-lg compact-card text-white">
             <div class="flex items-center justify-between mb-1">
                 <h3 class="text-xs font-bold">🍟 Анекдот</h3>
                 <button type="button" id="newQuoteBtn" class="bg-white/20 rounded-full p-1">🔄</button>
@@ -215,34 +219,34 @@
     </main>
 
     <!-- FAB -->
-    <button type="button" id="addBtn" class="fixed bottom-4 right-4 w-14 h-14 bg-primary hover:bg-orange-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-95 transition text-2xl">
+    <button type="button" id="addBtn" class="fixed bottom-4 right-4 w-14 h-14 accent-bg hover:opacity-90 text-white rounded-full shadow-custom-xl flex items-center justify-center z-40 active:scale-95 transition text-2xl">
         ➕
     </button>
 
     <!-- Manage Brands Modal -->
     <div id="manageBrandsModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="sticky top-0 bg-white border-b p-3 rounded-t-3xl flex items-center justify-between">
-                <h2 class="text-lg font-bold text-text">⚙️ Пресеты</h2>
-                <button type="button" id="closeBrandsModal" class="text-gray-400 text-2xl">✕</button>
+        <div class="bg-card rounded-3xl shadow-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-card border-b border-main p-3 rounded-t-3xl flex items-center justify-between">
+                <h2 class="text-lg font-bold text-main">⚙️ Пресеты</h2>
+                <button type="button" id="closeBrandsModal" class="text-tertiary text-2xl">✕</button>
             </div>
             
             <div class="p-3">
-                <div class="flex gap-2 mb-3 border-b">
-                    <button type="button" class="preset-tab flex-1 py-2 text-sm font-semibold border-b-2 border-primary text-primary" data-tab="chips">🥔 Чипсы</button>
-                    <button type="button" class="preset-tab flex-1 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-600" data-tab="croutons">🍞 Сухарики</button>
+                <div class="flex gap-2 mb-3 border-b border-main">
+                    <button type="button" class="preset-tab flex-1 py-2 text-sm font-semibold border-b-2 accent-text" data-tab="chips" style="border-bottom-color: var(--accent-primary)">🥔 Чипсы</button>
+                    <button type="button" class="preset-tab flex-1 py-2 text-sm font-semibold border-b-2 border-transparent text-secondary" data-tab="croutons">🍞 Сухарики</button>
                 </div>
 
                 <div id="chipsPresets" class="preset-content">
                     <div class="mb-3">
-                        <button type="button" id="addChipsPreset" class="w-full bg-primary text-white py-2 rounded-xl font-bold text-sm">+ Добавить чипсы</button>
+                        <button type="button" id="addChipsPreset" class="w-full accent-bg text-white py-2 rounded-xl font-bold text-sm">+ Добавить чипсы</button>
                     </div>
                     <div id="chipsPresetsList" class="space-y-2"></div>
                 </div>
 
                 <div id="croutonsPresets" class="preset-content hidden">
                     <div class="mb-3">
-                        <button type="button" id="addCroutonsPreset" class="w-full bg-primary text-white py-2 rounded-xl font-bold text-sm">+ Добавить сухарики</button>
+                        <button type="button" id="addCroutonsPreset" class="w-full accent-bg text-white py-2 rounded-xl font-bold text-sm">+ Добавить сухарики</button>
                     </div>
                     <div id="croutonsPresetsList" class="space-y-2"></div>
                 </div>
@@ -252,51 +256,51 @@
 
     <!-- Edit Brand Modal -->
     <div id="editBrandModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full p-4">
-            <h2 class="text-lg font-bold text-text mb-3">Редактировать</h2>
+        <div class="bg-card rounded-3xl shadow-2xl w-full p-4">
+            <h2 class="text-lg font-bold text-main mb-3">Редактировать</h2>
             
-            <input type="text" id="editBrandName" placeholder="Название" class="w-full px-3 py-2 mb-2 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none text-sm">
-            <input type="text" id="editBrandEmoji" placeholder="🍟" maxlength="2" class="w-full px-3 py-2 mb-2 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none text-sm">
-            <textarea id="editBrandFlavors" placeholder="Сыр, Бекон, Паприка" rows="2" class="w-full px-3 py-2 mb-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none text-sm"></textarea>
+            <input type="text" id="editBrandName" placeholder="Название" class="w-full px-3 py-2 mb-2 border-2 border-main rounded-xl focus:border-accent-primary focus:outline-none text-sm bg-input text-main">
+            <input type="text" id="editBrandEmoji" placeholder="🍟" maxlength="2" class="w-full px-3 py-2 mb-2 border-2 border-main rounded-xl focus:border-accent-primary focus:outline-none text-sm bg-input text-main">
+            <textarea id="editBrandFlavors" placeholder="Сыр, Бекон, Паприка" rows="2" class="w-full px-3 py-2 mb-3 border-2 border-main rounded-xl focus:border-accent-primary focus:outline-none text-sm bg-input text-main"></textarea>
 
             <div class="flex gap-2">
-                <button type="button" id="cancelEditBrand" class="flex-1 bg-gray-300 text-text font-bold py-2 rounded-xl text-sm">Отмена</button>
-                <button type="button" id="saveEditBrand" class="flex-1 bg-primary text-white font-bold py-2 rounded-xl text-sm">Сохранить</button>
+                <button type="button" id="cancelEditBrand" class="flex-1 bg-input text-main font-bold py-2 rounded-xl text-sm border border-main">Отмена</button>
+                <button type="button" id="saveEditBrand" class="flex-1 accent-bg text-white font-bold py-2 rounded-xl text-sm">Сохранить</button>
             </div>
         </div>
     </div>
 
     <!-- Add Friend Modal -->
     <div id="addFriendModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full p-4">
+        <div class="bg-card rounded-3xl shadow-2xl w-full p-4">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-bold text-text">Добавить друга</h2>
-                <button type="button" id="closeAddFriendModal" class="text-gray-400 text-2xl">✕</button>
+                <h2 class="text-lg font-bold text-main">Добавить друга</h2>
+                <button type="button" id="closeAddFriendModal" class="text-tertiary text-2xl">✕</button>
             </div>
             
-            <input type="text" id="friendSearchInput" placeholder="username или email" class="w-full px-3 py-2 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none mb-2 text-sm">
-            <button type="button" id="searchFriendBtn" class="w-full bg-primary text-white font-bold py-2 rounded-xl mb-2 text-sm">Найти</button>
+            <input type="text" id="friendSearchInput" placeholder="username или email" class="w-full px-3 py-2 border-2 border-main rounded-xl focus:border-accent-primary focus:outline-none mb-2 text-sm bg-input text-main">
+            <button type="button" id="searchFriendBtn" class="w-full accent-bg text-white font-bold py-2 rounded-xl mb-2 text-sm">Найти</button>
             <div id="friendSearchResult"></div>
         </div>
     </div>
 
     <!-- Edit Profile Modal -->
     <div id="editProfileModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full p-4">
-            <h2 class="text-lg font-bold text-text mb-3 text-center">Профиль</h2>
+        <div class="bg-card rounded-3xl shadow-2xl w-full p-4">
+            <h2 class="text-lg font-bold text-main mb-3 text-center">Профиль</h2>
             
             <div class="mb-3 text-center">
-                <img id="editProfilePreview" src="" alt="" class="w-16 h-16 rounded-full object-cover border-4 border-primary mx-auto mb-2">
-                <button type="button" id="editChangePhotoBtn" class="bg-primary text-white px-3 py-1 rounded-lg text-xs">Изменить фото</button>
+                <img id="editProfilePreview" src="" alt="" class="w-16 h-16 rounded-full object-cover border-4 border-main mx-auto mb-2">
+                <button type="button" id="editChangePhotoBtn" class="accent-bg text-white px-3 py-1 rounded-lg text-xs">Изменить фото</button>
                 <input type="file" id="editPhotoInput" accept="image/*" class="hidden">
             </div>
 
-            <input type="text" id="editUsernameInput" maxlength="20" class="w-full px-3 py-2 mb-2 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none text-sm">
-            <input type="text" id="editEmailDisplay" disabled class="w-full px-3 py-2 mb-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600 text-xs">
+            <input type="text" id="editUsernameInput" maxlength="20" class="w-full px-3 py-2 mb-2 border-2 border-main rounded-xl focus:border-accent-primary focus:outline-none text-sm bg-input text-main">
+            <input type="text" id="editEmailDisplay" disabled class="w-full px-3 py-2 mb-3 border-2 border-main rounded-xl bg-input text-secondary text-xs">
 
             <div class="flex gap-2 mb-2">
-                <button type="button" id="cancelEditBtn" class="flex-1 bg-gray-300 text-text font-bold py-2 rounded-xl text-sm">Отмена</button>
-                <button type="button" id="saveEditProfileBtn" class="flex-1 bg-primary text-white font-bold py-2 rounded-xl text-sm">Сохранить</button>
+                <button type="button" id="cancelEditBtn" class="flex-1 bg-input text-main font-bold py-2 rounded-xl text-sm border border-main">Отмена</button>
+                <button type="button" id="saveEditProfileBtn" class="flex-1 accent-bg text-white font-bold py-2 rounded-xl text-sm">Сохранить</button>
             </div>
             
             <button type="button" id="logoutBtn" class="w-full bg-red-500 text-white font-bold py-2 rounded-xl text-xs">Выйти</button>
@@ -305,65 +309,65 @@
 
     <!-- Add Snack Modal (MOBILE OPTIMIZED) -->
     <div id="addModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-        <div class="bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto">
+        <div class="bg-card rounded-t-3xl w-full max-h-[85vh] overflow-y-auto">
             
-            <div class="sticky top-0 bg-white border-b p-3 rounded-t-3xl z-10 flex items-center justify-between">
-                <h2 class="text-base font-bold text-text">🍪 Добавить снек</h2>
-                <button type="button" id="closeModal" class="text-gray-400 text-2xl">✕</button>
+            <div class="sticky top-0 bg-card border-b border-main p-3 rounded-t-3xl z-10 flex items-center justify-between">
+                <h2 class="text-base font-bold text-main">🍪 Добавить снек</h2>
+                <button type="button" id="closeModal" class="text-tertiary text-2xl">✕</button>
             </div>
 
             <div class="p-3">
-                <div class="flex gap-2 mb-3 border-b">
-                    <button type="button" class="tab-btn flex-1 py-2 text-sm font-semibold border-b-2 border-primary text-primary" data-tab="chips">🥔 Чипсы</button>
-                    <button type="button" class="tab-btn flex-1 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-600" data-tab="croutons">🍞 Сухарики</button>
+                <div class="flex gap-2 mb-3 border-b border-main">
+                    <button type="button" class="tab-btn flex-1 py-2 text-sm font-semibold border-b-2 accent-text" data-tab="chips" style="border-bottom-color: var(--accent-primary)">🥔 Чипсы</button>
+                    <button type="button" class="tab-btn flex-1 py-2 text-sm font-semibold border-b-2 border-transparent text-secondary" data-tab="croutons">🍞 Сухарики</button>
                 </div>
 
                 <div id="chipsTab" class="tab-content space-y-3">
                     <div>
-                        <label class="text-xs font-semibold text-text mb-2 block">Марка:</label>
+                        <label class="text-xs font-semibold text-main mb-2 block">Марка:</label>
                         <div class="grid grid-cols-3 gap-2" id="chipsBrands"></div>
                     </div>
                     <div id="chipsFlavorsSection" class="hidden">
-                        <label class="text-xs font-semibold text-text mb-2 block">Вкус:</label>
+                        <label class="text-xs font-semibold text-main mb-2 block">Вкус:</label>
                         <div class="grid grid-cols-3 gap-2" id="chipsFlavors"></div>
                     </div>
                     <div id="chipsSizesSection" class="hidden">
-                        <label class="text-xs font-semibold text-text mb-2 block">Размер:</label>
+                        <label class="text-xs font-semibold text-main mb-2 block">Размер:</label>
                         <div class="grid grid-cols-3 gap-2" id="chipsSizes"></div>
                     </div>
                 </div>
 
                 <div id="croutonsTab" class="tab-content hidden space-y-3">
                     <div>
-                        <label class="text-xs font-semibold text-text mb-2 block">Марка:</label>
+                        <label class="text-xs font-semibold text-main mb-2 block">Марка:</label>
                         <div class="grid grid-cols-3 gap-2" id="croutonsBrands"></div>
                     </div>
                     <div id="croutonsFlavorsSection" class="hidden">
-                        <label class="text-xs font-semibold text-text mb-2 block">Вкус:</label>
+                        <label class="text-xs font-semibold text-main mb-2 block">Вкус:</label>
                         <div class="grid grid-cols-3 gap-2" id="croutonsFlavors"></div>
                     </div>
                     <div id="croutonsSizesSection" class="hidden">
-                        <label class="text-xs font-semibold text-text mb-2 block">Размер:</label>
+                        <label class="text-xs font-semibold text-main mb-2 block">Размер:</label>
                         <div class="grid grid-cols-3 gap-2" id="croutonsSizes"></div>
                     </div>
                 </div>
 
                 <div class="mt-3">
-                    <label class="text-xs font-semibold text-text mb-2 block">Грамм:</label>
-                    <input type="number" id="customGrams" placeholder="Количество" class="w-full px-3 py-2 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none text-sm">
+                    <label class="text-xs font-semibold text-main mb-2 block">Грамм:</label>
+                    <input type="number" id="customGrams" placeholder="Количество" class="w-full px-3 py-2 border-2 border-main rounded-xl focus:border-accent-primary focus:outline-none text-sm bg-input text-main">
                 </div>
 
                 <div class="mt-3">
-                    <label class="text-xs font-semibold text-text mb-2 block">Дата:</label>
-                    <input type="datetime-local" id="dateTimeInput" class="w-full px-3 py-2 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none text-sm">
+                    <label class="text-xs font-semibold text-main mb-2 block">Дата:</label>
+                    <input type="datetime-local" id="dateTimeInput" class="w-full px-3 py-2 border-2 border-main rounded-xl focus:border-accent-primary focus:outline-none text-sm bg-input text-main">
                 </div>
 
-                <div id="selectionSummary" class="mt-3 p-2 bg-yellow-50 rounded-xl hidden">
-                    <p class="text-xs font-semibold text-gray-700">Выбрано:</p>
-                    <p class="text-sm font-bold text-text" id="summaryText"></p>
+                <div id="selectionSummary" class="mt-3 p-2 rounded-xl hidden" style="background-color: var(--bg-tertiary)">
+                    <p class="text-xs font-semibold text-secondary">Выбрано:</p>
+                    <p class="text-sm font-bold text-main" id="summaryText"></p>
                 </div>
 
-                <button type="button" id="saveSnackBtn" class="w-full mt-3 bg-primary text-white font-bold py-3 rounded-xl active:scale-95 transition">Сохранить</button>
+                <button type="button" id="saveSnackBtn" class="w-full mt-3 accent-bg text-white font-bold py-3 rounded-xl active:scale-95 transition">Сохранить</button>
             </div>
         </div>
     </div>
