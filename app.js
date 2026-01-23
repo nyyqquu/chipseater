@@ -1506,69 +1506,77 @@ class CrispTrackerApp {
         `).join('');
     }
 
-    selectBrand(category, brandKey) {
-        currentSelection.brand = brandKey;
-        currentSelection.flavor = null;
-        currentSelection.size = null;
+selectBrand(category, brandKey) {
+    currentSelection.brand = brandKey;
+    currentSelection.flavor = null;
+    currentSelection.size = null;
 
-        const brands = this.getAllBrands(category);
-        const brand = brands[brandKey];
-        const flavorsContainer = document.getElementById(category + 'Flavors');
-        
-        flavorsContainer.innerHTML = Object.entries(brand.flavors).map(([key, flavor]) => `
-            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectFlavor('${category}', '${key}')">
-                <div class="text-xl mb-1">${flavor.emoji}</div>
-                <div class="text-xs font-semibold truncate">${flavor.name}</div>
-            </button>
-        `).join('');
+    const brands = this.getAllBrands(category);
+    const brand = brands[brandKey];
+    const flavorsContainer = document.getElementById(category + 'Flavors');
+    
+    // Подсветка выбранного бренда
+    document.querySelectorAll(`#${category}Brands button`).forEach(btn => {
+        btn.classList.remove('border-primary', 'bg-yellow-50');
+        btn.classList.add('border-gray-300');
+    });
+    event.target.closest('button').classList.add('border-primary', 'bg-yellow-50');
+    event.target.closest('button').classList.remove('border-gray-300');
+    
+    flavorsContainer.innerHTML = Object.entries(brand.flavors).map(([key, flavor]) => `
+        <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectFlavor('${category}', '${key}')">
+            <div class="text-xl mb-1">${flavor.emoji}</div>
+            <div class="text-xs font-semibold truncate">${flavor.name}</div>
+        </button>
+    `).join('');
 
-        document.getElementById(category + 'FlavorsSection').classList.remove('hidden');
-        document.getElementById(category + 'SizesSection').classList.add('hidden');
-        
-        this.updateSummary();
-    }
+    document.getElementById(category + 'FlavorsSection').classList.remove('hidden');
+    document.getElementById(category + 'SizesSection').classList.add('hidden');
+    
+    this.updateSummary();
+}
 
-    selectFlavor(category, flavorKey) {
-        currentSelection.flavor = flavorKey;
-        currentSelection.size = null;
+selectFlavor(category, flavorKey) {
+    currentSelection.flavor = flavorKey;
+    currentSelection.size = null;
 
-        const sizesContainer = document.getElementById(category + 'Sizes');
-        sizesContainer.innerHTML = DEFAULT_SNACKS[category].sizes.map(size => `
-            <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectSize(${size.grams})">
-                <div class="text-xl mb-1">${size.emoji}</div>
-                <div class="font-bold text-primary text-sm">${size.grams}г</div>
-                <div class="text-xs text-gray-600">${size.label}</div>
-            </button>
-        `).join('');
+    // Подсветка выбранного вкуса
+    document.querySelectorAll(`#${category}Flavors button`).forEach(btn => {
+        btn.classList.remove('border-primary', 'bg-yellow-50');
+        btn.classList.add('border-gray-300');
+    });
+    event.target.closest('button').classList.add('border-primary', 'bg-yellow-50');
+    event.target.closest('button').classList.remove('border-gray-300');
 
-        document.getElementById(category + 'SizesSection').classList.remove('hidden');
-        
-        this.updateSummary();
-    }
+    const sizesContainer = document.getElementById(category + 'Sizes');
+    sizesContainer.innerHTML = DEFAULT_SNACKS[category].sizes.map(size => `
+        <button type="button" class="p-3 border-2 border-gray-300 rounded-xl hover:border-primary hover:bg-yellow-50 transition text-center active:scale-95" onclick="app.selectSize(${size.grams})">
+            <div class="text-xl mb-1">${size.emoji}</div>
+            <div class="font-bold text-primary text-sm">${size.grams}г</div>
+            <div class="text-xs text-gray-600">${size.label}</div>
+        </button>
+    `).join('');
 
-    selectSize(grams) {
-        currentSelection.size = grams;
-        document.getElementById('customGrams').value = grams;
-        this.updateSummary();
-    }
+    document.getElementById(category + 'SizesSection').classList.remove('hidden');
+    
+    this.updateSummary();
+}
 
-    updateSummary() {
-        const { category, brand, flavor, size } = currentSelection;
-
-        if (!category || !brand || !flavor) {
-            document.getElementById('selectionSummary').classList.add('hidden');
-            return;
-        }
-
-        const brands = this.getAllBrands(category);
-        const brandData = brands[brand];
-        const flavorData = brandData.flavors[flavor];
-        const sizeText = size ? ` • ${size}г` : '';
-
-        document.getElementById('summaryText').textContent = 
-            `${brandData.emoji} ${brandData.name} ${flavorData.emoji} ${flavorData.name}${sizeText}`;
-        document.getElementById('selectionSummary').classList.remove('hidden');
-    }
+selectSize(grams) {
+    currentSelection.size = grams;
+    document.getElementById('customGrams').value = grams;
+    
+    // Подсветка выбранного размера
+    const category = currentSelection.category;
+    document.querySelectorAll(`#${category}Sizes button`).forEach(btn => {
+        btn.classList.remove('border-primary', 'bg-yellow-50');
+        btn.classList.add('border-gray-300');
+    });
+    event.target.closest('button').classList.add('border-primary', 'bg-yellow-50');
+    event.target.closest('button').classList.remove('border-gray-300');
+    
+    this.updateSummary();
+}
 
     async saveSnack() {
         const grams = parseInt(document.getElementById('customGrams').value);
