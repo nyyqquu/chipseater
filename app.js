@@ -1,5 +1,5 @@
 // ==========================================
-// QUOTES DATABASE (ОБНОВЛЕНО)
+// QUOTES DATABASE
 // ==========================================
 
 const QUOTES = [
@@ -192,7 +192,8 @@ let currentSelection = {
 let currentMonths = {
     myChart: null,
     compChart: null,
-    history: null
+    history: null,
+    calendar: null
 };
 
 let isTopExpanded = false;
@@ -245,12 +246,10 @@ async function addFriendBidirectional(currentUserId, friendUserId) {
             const currentFriends = currentUserDoc.data().friends || [];
             const friendFriends = friendUserDoc.data().friends || [];
 
-            // Проверка на дубликат
             if (currentFriends.includes(friendUserId)) {
                 throw new Error('Уже в друзьях');
             }
 
-            // Добавляем друг другу
             currentFriends.push(friendUserId);
             friendFriends.push(currentUserId);
 
@@ -288,6 +287,67 @@ async function removeFriendBidirectional(currentUserId, friendUserId) {
         return true;
     } catch (error) {
         console.error('Ошибка при удалении друга:', error);
+        throw error;
+    }
+}
+
+// ==========================================
+// GLOBAL BRANDS (общие для всех)
+// ==========================================
+
+async function loadGlobalBrands() {
+    try {
+        const doc = await db.collection('globalBrands').doc('shared').get();
+        if (doc.exists) {
+            return doc.data().brands || { chips: {}, croutons: {} };
+        }
+        return { chips: {}, croutons: {} };
+    } catch (error) {
+        console.error('Ошибка загрузки глобальных брендов:', error);
+        return { chips: {}, croutons: {} };
+    }
+}
+
+async function saveGlobalBrand(category, brandKey, brandData) {
+    try {
+        const docRef = db.collection('globalBrands').doc('shared');
+        const doc = await docRef.get();
+        
+        let brands = { chips: {}, croutons: {} };
+        if (doc.exists) {
+            brands = doc.data().brands || { chips: {}, croutons: {} };
+        }
+
+        if (!brands[category]) {
+            brands[category] = {};
+        }
+
+        brands[category][brandKey] = brandData;
+
+        await docRef.set({ brands }, { merge: true });
+        return true;
+    } catch (error) {
+        console.error('Ошибка сохранения глобального бренда:', error);
+        throw error;
+    }
+}
+
+async function deleteGlobalBrand(category, brandKey) {
+    try {
+        const docRef = db.collection('globalBrands').doc('shared');
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+            let brands = doc.data().brands || { chips: {}, croutons: {} };
+            
+            if (brands[category] && brands[category][brandKey]) {
+                delete brands[category][brandKey];
+                await docRef.set({ brands }, { merge: true });
+            }
+        }
+        return true;
+    } catch (error) {
+        console.error('Ошибка удаления глобального бренда:', error);
         throw error;
     }
 }
@@ -397,18 +457,19 @@ class CrispTrackerApp {
         this.user = user;
         this.profile = profile;
         this.charts = {};
-        this.customBrands = { chips: {}, croutons: {} };
+        this.globalBrands = { chips: {}, croutons: {} };
         this.editingBrandKey = null;
         this.editingBrandCategory = null;
         
         currentMonths = {
             myChart: getCurrentYearMonth(),
             compChart: getCurrentYearMonth(),
-            history: getCurrentYearMonth()
+            history: getCurrentYearMonth(),
+            calendar: getCurrentYearMonth()
         };
         
         this.initUI();
-        this.loadCustomBrands();
+        this.loadGlobalBrands();
         this.loadData();
     }
 
@@ -468,8 +529,6 @@ class CrispTrackerApp {
         document.getElementById('addChipsPreset').onclick = () => this.openAddPreset('chips');
         document.getElementById('addCroutonsPreset').onclick = () => this.openAddPreset('croutons');
 
-        this.renderChipsBrands();
-        this.renderCroutonsBrands();
         showRandomQuote();
     }
 
@@ -538,14 +597,29 @@ class CrispTrackerApp {
             document.getElementById('historyMonth').value = currentMonths.history;
             this.loadHistory();
         };
+
+        // Calendar
+        document.getElementById('calendarMonth').value = currentMonths.calendar;
+        document.getElementById('calendarMonth').onchange = (e) => {
+            currentMonths.calendar = e.target.value;
+            this.renderCalendar();
+        };
+        document.getElementById('calendarPrev').onclick = () => {
+            currentMonths.calendar = changeMonth(currentMonths.calendar, -1);
+            document.getElementById('calendarMonth').value = currentMonths.calendar;
+            this.renderCalendar();
+        };
+        document.getElementById('calendarNext').onclick = () => {
+            currentMonths.calendar = changeMonth(currentMonths.calendar, 1);
+            document.getElementById('calendarMonth').value = currentMonths.calendar;
+            this.renderCalendar();
+        };
     }
 
-    async loadCustomBrands() {
-        const doc = await db.collection('customBrands').doc(this.user.uid).get();
-        if (doc.exists) {
-            const data = doc.data();
-            this.customBrands = data.brands || { chips: {}, croutons: {} };
-        }
+    async loadGlobalBrands() {
+        this.globalBrands = await loadGlobalBrands();
+        this.renderChipsBrands();
+        this.renderCroutonsBrands();
     }
 
     async loadData() {
@@ -554,7 +628,8 @@ class CrispTrackerApp {
             this.loadTopUsers(),
             this.loadFriendsList(),
             this.loadHistory(),
-            this.renderCharts()
+            this.renderCharts(),
+            this.renderCalendar()
         ]);
     }
 
@@ -649,7 +724,6 @@ class CrispTrackerApp {
             `;
         }).join('');
 
-        // Show/hide toggle button
         if (topUsers.length > 3) {
             document.getElementById('toggleTopBtn').style.display = 'block';
         } else {
@@ -909,7 +983,104 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // MANAGE BRANDS
+    // CALENDAR (НОВОЕ)
+    // ==========================================
+
+    async renderCalendar() {
+        const [year, month] = currentMonths.calendar.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        
+        // Получаем записи за месяц для всех пользователей и их друзей
+        const friends = this.profile.friends || [];
+        const userIds = [this.user.uid, ...friends].slice(0, 10);
+
+        const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+        const snapshot = await db.collection('entries')
+            .where('userId', 'in', userIds)
+            .where('date', '>=', startDate)
+            .where('date', '<=', endDate)
+            .get();
+
+        // Собираем дни с активностью для каждого пользователя
+        const activityByDate = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const dateKey = data.date;
+            if (!activityByDate[dateKey]) {
+                activityByDate[dateKey] = new Set();
+            }
+            activityByDate[dateKey].add(data.userId);
+        });
+
+        // Генерируем календарь
+        const calendarContainer = document.getElementById('calendarGrid');
+        let calendarHTML = '<div class="grid grid-cols-7 gap-1">';
+
+        // Заголовки дней недели
+        const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        weekDays.forEach(day => {
+            calendarHTML += `<div class="text-center text-xs font-semibold text-gray-600 py-1">${day}</div>`;
+        });
+
+        // Пустые ячейки до начала месяца (понедельник = 0)
+        const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+        for (let i = 0; i < adjustedFirstDay; i++) {
+            calendarHTML += '<div></div>';
+        }
+
+        // Дни месяца
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month - 1, day);
+            const dateKey = date.toISOString().split('T')[0];
+            const users = activityByDate[dateKey] || new Set();
+            
+            const hasMyActivity = users.has(this.user.uid);
+            const hasFriendsActivity = Array.from(users).some(uid => uid !== this.user.uid);
+
+            let dotHTML = '';
+            if (hasMyActivity && hasFriendsActivity) {
+                dotHTML = '<div class="flex gap-0.5 justify-center mt-0.5"><span class="w-1.5 h-1.5 bg-primary rounded-full"></span><span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span></div>';
+            } else if (hasMyActivity) {
+                dotHTML = '<div class="flex justify-center mt-0.5"><span class="w-1.5 h-1.5 bg-primary rounded-full"></span></div>';
+            } else if (hasFriendsActivity) {
+                dotHTML = '<div class="flex justify-center mt-0.5"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span></div>';
+            }
+
+            const isToday = dateKey === new Date().toISOString().split('T')[0];
+            const todayClass = isToday ? 'ring-2 ring-primary' : '';
+
+            calendarHTML += `
+                <div class="aspect-square flex flex-col items-center justify-center bg-gray-50 rounded-lg ${todayClass} text-center">
+                    <span class="text-xs font-semibold text-text">${day}</span>
+                    ${dotHTML}
+                </div>
+            `;
+        }
+
+        calendarHTML += '</div>';
+
+        // Легенда
+        calendarHTML += `
+            <div class="mt-3 flex items-center justify-center gap-4 text-xs">
+                <div class="flex items-center gap-1">
+                    <span class="w-2 h-2 bg-primary rounded-full"></span>
+                    <span class="text-gray-600">Вы</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    <span class="text-gray-600">Друзья</span>
+                </div>
+            </div>
+        `;
+
+        calendarContainer.innerHTML = calendarHTML;
+    }
+
+    // ==========================================
+    // MANAGE BRANDS (глобальные)
     // ==========================================
 
     openManageBrands() {
@@ -1021,53 +1192,56 @@ class CrispTrackerApp {
         });
 
         const brandKey = this.editingBrandKey || `custom_${Date.now()}`;
-        
-        if (!this.customBrands[this.editingBrandCategory]) {
-            this.customBrands[this.editingBrandCategory] = {};
-        }
-
-        this.customBrands[this.editingBrandCategory][brandKey] = {
+        const brandData = {
             name: name,
             emoji: emoji,
             flavors: flavors
         };
 
-        await db.collection('customBrands').doc(this.user.uid).set({
-            brands: this.customBrands
-        });
-
-        this.closeEditBrand();
-        this.renderPresets(this.editingBrandCategory);
-        this.renderChipsBrands();
-        this.renderCroutonsBrands();
-        this.showToast('✅ Сохранено!');
+        try {
+            await saveGlobalBrand(this.editingBrandCategory, brandKey, brandData);
+            await this.loadGlobalBrands();
+            
+            this.closeEditBrand();
+            this.renderPresets(this.editingBrandCategory);
+            this.showToast('✅ Сохранено для всех!');
+        } catch (error) {
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ошибка: ' + error.message);
+            } else {
+                alert('Ошибка: ' + error.message);
+            }
+        }
     }
 
     async deleteBrand(category, brandKey) {
         const confirmed = await new Promise(resolve => {
             if (window.tgApp) {
-                window.tgApp.showConfirm('Удалить этот бренд?', resolve);
+                window.tgApp.showConfirm('Удалить этот бренд для всех?', resolve);
             } else {
-                resolve(confirm('Удалить этот бренд?'));
+                resolve(confirm('Удалить этот бренд для всех?'));
             }
         });
 
         if (!confirmed) return;
 
-        delete this.customBrands[category][brandKey];
-
-        await db.collection('customBrands').doc(this.user.uid).set({
-            brands: this.customBrands
-        });
-
-        this.renderPresets(category);
-        this.renderChipsBrands();
-        this.renderCroutonsBrands();
-        this.showToast('🗑️ Удалено');
+        try {
+            await deleteGlobalBrand(category, brandKey);
+            await this.loadGlobalBrands();
+            
+            this.renderPresets(category);
+            this.showToast('🗑️ Удалено для всех');
+        } catch (error) {
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ошибка: ' + error.message);
+            } else {
+                alert('Ошибка: ' + error.message);
+            }
+        }
     }
 
     // ==========================================
-    // FRIENDS (с двусторонним добавлением)
+    // FRIENDS
     // ==========================================
 
     openAddFriend() {
@@ -1136,7 +1310,6 @@ class CrispTrackerApp {
         try {
             await addFriendBidirectional(this.user.uid, friendId);
 
-            // Обновляем локальный профиль
             const friends = this.profile.friends || [];
             friends.push(friendId);
             this.profile.friends = friends;
@@ -1167,8 +1340,6 @@ class CrispTrackerApp {
 
         try {
             await removeFriendBidirectional(this.user.uid, friendId);
-
-            // Обновляем локальный профиль
             this.profile.friends = (this.profile.friends || []).filter(id => id !== friendId);
 
             await this.loadData();
@@ -1298,7 +1469,7 @@ class CrispTrackerApp {
     }
 
     getAllBrands(category) {
-        return { ...DEFAULT_SNACKS[category].brands, ...this.customBrands[category] };
+        return { ...DEFAULT_SNACKS[category].brands, ...this.globalBrands[category] };
     }
 
     renderChipsBrands() {
