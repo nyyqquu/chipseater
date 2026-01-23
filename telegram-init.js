@@ -3,6 +3,7 @@ class TelegramApp {
     constructor() {
         this.tg = window.Telegram?.WebApp;
         this.user = null;
+        this.colorScheme = 'light';
         
         if (this.tg) {
             console.log('Telegram WebApp detected');
@@ -18,25 +19,89 @@ class TelegramApp {
             
             // Apply theme
             this.applyTheme();
+            
+            // Listen for theme changes
+            this.tg.onEvent('themeChanged', () => {
+                console.log('Theme changed');
+                this.applyTheme();
+            });
         } else {
             console.log('Not running in Telegram');
+            // Browser fallback - check system preference
+            this.detectSystemTheme();
         }
+    }
+
+    detectSystemTheme() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            this.colorScheme = 'dark';
+            this.applyDarkTheme();
+        }
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            this.colorScheme = e.matches ? 'dark' : 'light';
+            if (e.matches) {
+                this.applyDarkTheme();
+            } else {
+                this.applyLightTheme();
+            }
+        });
     }
 
     applyTheme() {
         if (!this.tg) return;
         
-        const params = this.tg.themeParams;
-        if (params.bg_color) {
-            document.documentElement.style.setProperty('--tg-theme-bg-color', params.bg_color);
-        }
-        if (params.button_color) {
-            document.documentElement.style.setProperty('--tg-theme-button-color', params.button_color);
-        }
+        this.colorScheme = this.tg.colorScheme || 'light';
+        console.log('Applying theme:', this.colorScheme);
         
-        if (this.tg.colorScheme === 'dark') {
-            document.body.classList.add('dark-theme');
+        if (this.colorScheme === 'dark') {
+            this.applyDarkTheme();
+        } else {
+            this.applyLightTheme();
         }
+    }
+
+    applyDarkTheme() {
+        const root = document.documentElement;
+        
+        // Dark theme colors (Telegram-style)
+        root.style.setProperty('--bg-primary', '#1C1C1E');        // Main background
+        root.style.setProperty('--bg-secondary', '#2C2C2E');      // Cards
+        root.style.setProperty('--bg-tertiary', '#3A3A3C');       // Inputs
+        root.style.setProperty('--text-primary', '#FFFFFF');      // Main text
+        root.style.setProperty('--text-secondary', '#98989E');    // Secondary text
+        root.style.setProperty('--text-tertiary', '#636366');     // Tertiary text
+        root.style.setProperty('--accent-primary', '#0A84FF');    // Blue accent
+        root.style.setProperty('--accent-secondary', '#5E5CE6');  // Purple accent
+        root.style.setProperty('--border-color', '#38383A');      // Borders
+        root.style.setProperty('--success-color', '#30D158');     // Success
+        root.style.setProperty('--error-color', '#FF453A');       // Error
+        root.style.setProperty('--warning-color', '#FF9F0A');     // Warning
+        
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+    }
+
+    applyLightTheme() {
+        const root = document.documentElement;
+        
+        // Light theme colors (Original orange-white)
+        root.style.setProperty('--bg-primary', '#F5F5F5');        // Main background
+        root.style.setProperty('--bg-secondary', '#FFFFFF');      // Cards
+        root.style.setProperty('--bg-tertiary', '#FFFFFF');       // Inputs
+        root.style.setProperty('--text-primary', '#333333');      // Main text
+        root.style.setProperty('--text-secondary', '#666666');    // Secondary text
+        root.style.setProperty('--text-tertiary', '#999999');     // Tertiary text
+        root.style.setProperty('--accent-primary', '#FF9900');    // Orange accent
+        root.style.setProperty('--accent-secondary', '#FF7700');  // Darker orange
+        root.style.setProperty('--border-color', '#E5E5E5');      // Borders
+        root.style.setProperty('--success-color', '#00CC66');     // Success
+        root.style.setProperty('--error-color', '#FF3B30');       // Error
+        root.style.setProperty('--warning-color', '#FF9500');     // Warning
+        
+        document.body.classList.add('light-theme');
+        document.body.classList.remove('dark-theme');
     }
 
     isAvailable() {
@@ -84,8 +149,12 @@ class TelegramApp {
             this.tg.close();
         }
     }
+
+    isDark() {
+        return this.colorScheme === 'dark';
+    }
 }
 
 // Initialize immediately
 window.tgApp = new TelegramApp();
-console.log('Telegram App initialized, available:', window.tgApp.isAvailable());
+console.log('Telegram App initialized, available:', window.tgApp.isAvailable(), 'theme:', window.tgApp.colorScheme);
