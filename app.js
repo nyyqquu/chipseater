@@ -173,6 +173,76 @@ function changeMonth(currentMonth, offset) {
 }
 
 // ==========================================
+// FRIENDS MODULE (двустороннее добавление)
+// ==========================================
+
+async function addFriendBidirectional(currentUserId, friendUserId) {
+    if (currentUserId === friendUserId) {
+        throw new Error('Нельзя добавить самого себя');
+    }
+
+    const usersRef = db.collection('users');
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const currentUserDoc = await transaction.get(usersRef.doc(currentUserId));
+            const friendUserDoc = await transaction.get(usersRef.doc(friendUserId));
+
+            if (!currentUserDoc.exists || !friendUserDoc.exists) {
+                throw new Error('Один из пользователей не найден');
+            }
+
+            const currentFriends = currentUserDoc.data().friends || [];
+            const friendFriends = friendUserDoc.data().friends || [];
+
+            // Проверка на дубликат
+            if (currentFriends.includes(friendUserId)) {
+                throw new Error('Уже в друзьях');
+            }
+
+            // Добавляем друг другу
+            currentFriends.push(friendUserId);
+            friendFriends.push(currentUserId);
+
+            transaction.update(usersRef.doc(currentUserId), { friends: currentFriends });
+            transaction.update(usersRef.doc(friendUserId), { friends: friendFriends });
+        });
+
+        console.log('Друзья успешно добавлены взаимно');
+        return true;
+    } catch (error) {
+        console.error('Ошибка при добавлении в друзья:', error);
+        throw error;
+    }
+}
+
+async function removeFriendBidirectional(currentUserId, friendUserId) {
+    const usersRef = db.collection('users');
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const currentUserDoc = await transaction.get(usersRef.doc(currentUserId));
+            const friendUserDoc = await transaction.get(usersRef.doc(friendUserId));
+
+            if (!currentUserDoc.exists || !friendUserDoc.exists) {
+                throw new Error('Пользователь не найден');
+            }
+
+            const currentFriends = (currentUserDoc.data().friends || []).filter(id => id !== friendUserId);
+            const friendFriends = (friendUserDoc.data().friends || []).filter(id => id !== currentUserId);
+
+            transaction.update(usersRef.doc(currentUserId), { friends: currentFriends });
+            transaction.update(usersRef.doc(friendUserId), { friends: friendFriends });
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Ошибка при удалении друга:', error);
+        throw error;
+    }
+}
+
+// ==========================================
 // AUTH MANAGER
 // ==========================================
 
@@ -476,11 +546,15 @@ class CrispTrackerApp {
         const friends = this.profile.friends || [];
         const userIds = [this.user.uid, ...friends];
 
+        if (userIds.length > 10) {
+            userIds.length = 10;
+        }
+
         const monthAgo = new Date();
         monthAgo.setDate(monthAgo.getDate() - 30);
 
         const snapshot = await db.collection('entries')
-            .where('userId', 'in', userIds.slice(0, 10))
+            .where('userId', 'in', userIds)
             .where('date', '>=', monthAgo.toISOString().split('T')[0])
             .get();
 
@@ -785,7 +859,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // MANAGE BRANDS (продолжение в след. сообщении)
+    // MANAGE BRANDS
     // ==========================================
 
     openManageBrands() {
@@ -943,7 +1017,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // FRIENDS (продолжение в след. сообщении)
+    // FRIENDS (с двусторонним добавлением)
     // ==========================================
 
     openAddFriend() {
@@ -1009,35 +1083,53 @@ class CrispTrackerApp {
     }
 
     async addFriend(friendId) {
-        const friends = this.profile.friends || [];
-        friends.push(friendId);
+        try {
+            await addFriendBidirectional(this.user.uid, friendId);
 
-        await db.collection('users').doc(this.user.uid).update({ friends });
+            // Обновляем локальный профиль
+            const friends = this.profile.friends || [];
+            friends.push(friendId);
+            this.profile.friends = friends;
 
-        this.profile.friends = friends;
-        document.getElementById('friendSearchInput').value = '';
-        document.getElementById('friendSearchResult').innerHTML = '';
-        this.loadData();
-        this.showToast('✅ Друг добавлен!');
+            document.getElementById('friendSearchInput').value = '';
+            document.getElementById('friendSearchResult').innerHTML = '';
+            await this.loadData();
+            this.showToast('✅ Друг добавлен! (взаимно)');
+        } catch (error) {
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ошибка: ' + error.message);
+            } else {
+                alert('Ошибка: ' + error.message);
+            }
+        }
     }
 
     async removeFriend(friendId) {
         const confirmed = await new Promise(resolve => {
             if (window.tgApp) {
-                window.tgApp.showConfirm('Удалить?', resolve);
+                window.tgApp.showConfirm('Удалить из друзей? (взаимно)', resolve);
             } else {
-                resolve(confirm('Удалить?'));
+                resolve(confirm('Удалить из друзей? (взаимно)'));
             }
         });
 
         if (!confirmed) return;
 
-        const friends = (this.profile.friends || []).filter(id => id !== friendId);
-        await db.collection('users').doc(this.user.uid).update({ friends });
+        try {
+            await removeFriendBidirectional(this.user.uid, friendId);
 
-        this.profile.friends = friends;
-        this.loadData();
-        this.showToast('🗑️ Удалён');
+            // Обновляем локальный профиль
+            this.profile.friends = (this.profile.friends || []).filter(id => id !== friendId);
+
+            await this.loadData();
+            this.showToast('🗑️ Удалён (взаимно)');
+        } catch (error) {
+            if (window.tgApp) {
+                window.tgApp.showAlert('Ошибка: ' + error.message);
+            } else {
+                alert('Ошибка: ' + error.message);
+            }
+        }
     }
 
     // ==========================================
@@ -1101,7 +1193,7 @@ class CrispTrackerApp {
     }
 
     // ==========================================
-    // ADD SNACK (Mobile Optimized)
+    // ADD SNACK
     // ==========================================
 
     openAddModal() {
